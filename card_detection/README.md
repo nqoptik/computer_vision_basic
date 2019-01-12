@@ -1,0 +1,22 @@
+# Patch-Based Multi-View Stereo
+A simple implementation card detection.
+
+## Build project
+Build project with cmake:
+```
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+```
+
+## Run project
+Copy test data to build folder:
+```
+cp -r ../../../computer_vision_anlab_data/card_detection/build/* .
+```
+
+Run card detection:
+```
+./card_detection <video_file>
+```
