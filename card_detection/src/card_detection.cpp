@@ -6,7 +6,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 void quadDetection(cv::Mat, std::vector<cv::Vec8i>&);
-void simplifyContours(int, std::vector<std::vector<cv::Point> >&);
+void simplifyContours(int, std::vector<std::vector<cv::Point>>&);
 bool findQuadrangleInContour(cv::Mat, std::vector<cv::Point>, cv::Vec8i&);
 void simplifyLines(cv::Mat, std::vector<cv::Vec4i>&);
 void sortLines(std::vector<cv::Vec4i>&);
@@ -40,23 +40,23 @@ int main(int argc, char** argv) {
 
         cv::Mat resizeImg;
         float rate = orgImg.cols / 400.0f;
-        resize(orgImg, resizeImg, cv::Size(400, cvRound(orgImg.rows / rate)));
-        resize(orgImg, orgImg, cv::Size(400, cvRound(orgImg.rows / rate)));
+        cv::resize(orgImg, resizeImg, cv::Size(400, round(orgImg.rows / rate)));
+        cv::resize(orgImg, orgImg, cv::Size(400, round(orgImg.rows / rate)));
 
         std::vector<cv::Vec8i> quadrangles;
         quadDetection(resizeImg, quadrangles);
 
         cv::Mat outImg = orgImg.clone();
 
-        resize(outImg, outImg, cv::Size(outImg.cols * 2, outImg.rows * 2));
+        cv::resize(outImg, outImg, cv::Size(outImg.cols * 2, outImg.rows * 2));
         for (unsigned int i = 0; i < quadrangles.size(); i++) {
-            line(outImg, cv::Point(2 * quadrangles[i][0], 2 * quadrangles[i][1]), cv::Point(2 * quadrangles[i][2], 2 * quadrangles[i][3]), cv::Scalar(0, 0, 255), 2, 8, 0);
-            line(outImg, cv::Point(2 * quadrangles[i][2], 2 * quadrangles[i][3]), cv::Point(2 * quadrangles[i][4], 2 * quadrangles[i][5]), cv::Scalar(0, 0, 255), 2, 8, 0);
-            line(outImg, cv::Point(2 * quadrangles[i][4], 2 * quadrangles[i][5]), cv::Point(2 * quadrangles[i][6], 2 * quadrangles[i][7]), cv::Scalar(0, 0, 255), 2, 8, 0);
-            line(outImg, cv::Point(2 * quadrangles[i][6], 2 * quadrangles[i][7]), cv::Point(2 * quadrangles[i][0], 2 * quadrangles[i][1]), cv::Scalar(0, 0, 255), 2, 8, 0);
+            cv::line(outImg, cv::Point(2 * quadrangles[i][0], 2 * quadrangles[i][1]), cv::Point(2 * quadrangles[i][2], 2 * quadrangles[i][3]), cv::Scalar(0, 0, 255), 2, 8, 0);
+            cv::line(outImg, cv::Point(2 * quadrangles[i][2], 2 * quadrangles[i][3]), cv::Point(2 * quadrangles[i][4], 2 * quadrangles[i][5]), cv::Scalar(0, 0, 255), 2, 8, 0);
+            cv::line(outImg, cv::Point(2 * quadrangles[i][4], 2 * quadrangles[i][5]), cv::Point(2 * quadrangles[i][6], 2 * quadrangles[i][7]), cv::Scalar(0, 0, 255), 2, 8, 0);
+            cv::line(outImg, cv::Point(2 * quadrangles[i][6], 2 * quadrangles[i][7]), cv::Point(2 * quadrangles[i][0], 2 * quadrangles[i][1]), cv::Scalar(0, 0, 255), 2, 8, 0);
         }
 
-        imshow("outImg", outImg);
+        cv::imshow("outImg", outImg);
 
         cv::waitKey(1);
     }
@@ -67,22 +67,22 @@ int main(int argc, char** argv) {
 
 void quadDetection(cv::Mat image, std::vector<cv::Vec8i>& quadrangles) {
     cv::Mat hsvImg;
-    cvtColor(image, hsvImg, CV_BGR2HSV);
+    cv::cvtColor(image, hsvImg, CV_BGR2HSV);
 
     ///Use hue channel
     cv::Mat hueImg;
     hueImg.create(hsvImg.size(), hsvImg.depth());
     int from_To[] = {0, 0};
-    mixChannels(&hsvImg, 1, &hueImg, 1, from_To, 1);
+    cv::mixChannels(&hsvImg, 1, &hueImg, 1, from_To, 1);
 
     ///threshold and close hue channel
-    threshold(hueImg, hueImg, 70, 255, CV_THRESH_BINARY);
-    dilate(hueImg, hueImg, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
-    erode(hueImg, hueImg, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
+    cv::threshold(hueImg, hueImg, 70, 255, CV_THRESH_BINARY);
+    cv::dilate(hueImg, hueImg, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
+    cv::erode(hueImg, hueImg, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
 
     ///Find contours of hue channel
-    std::vector<std::vector<cv::Point> > contours;
-    findContours(hueImg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(hueImg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
     ///Remove noise contours
     simplifyContours(2000, contours);
@@ -98,9 +98,9 @@ void quadDetection(cv::Mat image, std::vector<cv::Vec8i>& quadrangles) {
     }
 }
 
-void simplifyContours(int minArea, std::vector<std::vector<cv::Point> >& contours) {
+void simplifyContours(int minArea, std::vector<std::vector<cv::Point>>& contours) {
     for (unsigned int i = 0; i < contours.size(); i++) {
-        if (contourArea(contours[i]) < minArea) {
+        if (cv::contourArea(contours[i]) < minArea) {
             contours.erase(contours.begin() + i, contours.begin() + i + 1);
             i--;
         }
@@ -111,13 +111,13 @@ bool findQuadrangleInContour(cv::Mat image, std::vector<cv::Point> contour, cv::
     cv::Mat contourImg = cv::Mat::zeros(image.size(), CV_8UC1);
 
     for (unsigned int i = 0; i < contour.size() - 1; i++) {
-        line(contourImg, contour[i], contour[i + 1], 255, 1, 8, 0);
+        cv::line(contourImg, contour[i], contour[i + 1], 255, 1, 8, 0);
     }
-    line(contourImg, contour[0], contour[contour.size() - 1], 255, 1, 8, 0);
+    cv::line(contourImg, contour[0], contour[contour.size() - 1], 255, 1, 8, 0);
 
     ///find edge lines
     std::vector<cv::Vec4i> lines;
-    HoughLinesP(contourImg, lines, 1, CV_PI / 180, 20, 20, 15);
+    cv::HoughLinesP(contourImg, lines, 1, CV_PI / 180, 20, 20, 15);
 
     simplifyLines(contourImg, lines);
 
@@ -254,7 +254,7 @@ bool findIntersects(std::vector<cv::Vec4i> lines, cv::Vec8i& intersects) {
         return false;
     }
 
-    convexHull(inters, inters);
+    cv::convexHull(cv::Mat(inters).clone(), inters);
 
     intersects[0] = inters[0].x;
     intersects[1] = inters[0].y;
@@ -288,14 +288,14 @@ float cosTwoLines(cv::Point line1_p1, cv::Point line1_p2, cv::Point line2_p1, cv
 int EuclidDistanced(cv::Point p1, cv::Point p2) {
     int dx = p2.x - p1.x;
     int dy = p2.y - p1.y;
-    return cvRound(sqrtf((float)(dx * dx + dy * dy)));
+    return round(sqrtf((float)(dx * dx + dy * dy)));
 }
 
 int triagleArea(cv::Point p1, cv::Point p2, cv::Point p3) {
     int a = EuclidDistanced(p1, p2);
     int b = EuclidDistanced(p2, p3);
     int c = EuclidDistanced(p3, p1);
-    int upper = cvRound(sqrtf((float)(a + b + c) * (a + b - c) * (a + c - b) * (b + c - a)));
+    int upper = round(sqrtf((float)(a + b + c) * (a + b - c) * (a + c - b) * (b + c - a)));
     return upper / 4;
 }
 
