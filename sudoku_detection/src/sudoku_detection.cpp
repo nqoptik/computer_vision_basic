@@ -9,6 +9,10 @@ std::vector<std::vector<cv::Point>> simplifyContoursByArea(std::vector<std::vect
 
 int main(int argc, char** argv) {
     cv::Mat orgImg = cv::imread(argv[1], 1);
+    if (orgImg.empty()) {
+        printf("Empty image.\n");
+        return 1;
+    }
 
     cv::Mat grayImg;
     cv::cvtColor(orgImg, grayImg, CV_BGR2GRAY);
@@ -26,7 +30,7 @@ int main(int argc, char** argv) {
 
     cv::Mat contoursImg = cv::Mat::zeros(grayImg.size(), CV_8UC1);
     for (size_t i = 0; i < contours.size(); i++) {
-        drawContours(contoursImg, contours, i, 255, CV_FILLED);
+        cv::drawContours(contoursImg, contours, i, 255, CV_FILLED);
     }
 
     cv::Mat mainImg;
@@ -82,8 +86,8 @@ std::vector<std::vector<cv::Point>> simplifyContoursByArea(std::vector<std::vect
             areaInContours.push_back(contourArea(inContours[i]));
         }
 
-        sort(areaInContours.begin(), areaInContours.end());
-        reverse(areaInContours.begin(), areaInContours.end());
+        std::sort(areaInContours.begin(), areaInContours.end());
+        std::reverse(areaInContours.begin(), areaInContours.end());
 
         ///Remove noise contours
         std::vector<std::vector<cv::Point>> outContours;

@@ -1,9 +1,9 @@
 #include <iostream>
 #include <dirent.h>
 
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 const int noAPR = 6;  ///angles per  radius
 const float PI = 3.14159265f;
@@ -46,7 +46,7 @@ int main() {
         }
 
         cv::Mat bilateralMat;
-        bilateralFilter(orgImg, bilateralMat, 5, 21, 21);
+        cv::bilateralFilter(orgImg, bilateralMat, 5, 21, 21);
 
         std::vector<cv::Vec3i> strictCircle;
         strictCircle = findCircle(bilateralMat);
@@ -54,8 +54,8 @@ int main() {
         ///Draw strict circle
         cv::Mat strictImg = orgImg.clone();
         for (unsigned int i = 0; i < strictCircle.size(); i++) {
-            circle(strictImg, cv::Point(strictCircle[i][1], strictCircle[i][0]), 1, cv::Scalar(0, 0, 255), 3, 8, 0);
-            circle(strictImg, cv::Point(strictCircle[i][1], strictCircle[i][0]), strictCircle[i][2], cv::Scalar(0, 0, 255), 1, 8, 0);
+            cv::circle(strictImg, cv::Point(strictCircle[i][1], strictCircle[i][0]), 1, cv::Scalar(0, 0, 255), 3, 8, 0);
+            cv::circle(strictImg, cv::Point(strictCircle[i][1], strictCircle[i][0]), strictCircle[i][2], cv::Scalar(0, 0, 255), 1, 8, 0);
         }
 
         cv::imshow("strictImg", strictImg);
@@ -68,13 +68,13 @@ int main() {
 
 std::vector<cv::Vec3i> findCircle(cv::Mat orgImg) {
     cv::Mat hsvImg;
-    cvtColor(orgImg, hsvImg, CV_BGR2HSV);
+    cv::cvtColor(orgImg, hsvImg, CV_BGR2HSV);
 
     ///Just use only v channel
     cv::Mat vImg;
     vImg.create(hsvImg.size(), hsvImg.depth());
     int from_To[] = {2, 0};
-    mixChannels(&hsvImg, 1, &vImg, 1, from_To, 1);
+    cv::mixChannels(&hsvImg, 1, &vImg, 1, from_To, 1);
 
     ///Resize threshold image to 50*x
     cv::Mat resizeThresholdImg;
@@ -82,12 +82,12 @@ std::vector<cv::Vec3i> findCircle(cv::Mat orgImg) {
 
     ///Find edge of resize threshold image
     cv::Mat edgeResizeImg;
-    Canny(vImg, edgeResizeImg, lowThreshold, lowThreshold * 2, 3);
-    dilate(edgeResizeImg, edgeResizeImg, cv::Mat(), cv::Point(-1, -1), 1, 1, 1);
-    resize(edgeResizeImg, edgeResizeImg, cv::Size(50, cvRound(vImg.rows / rate)));
+    cv::Canny(vImg, edgeResizeImg, lowThreshold, lowThreshold * 2, 3);
+    cv::dilate(edgeResizeImg, edgeResizeImg, cv::Mat(), cv::Point(-1, -1), 1, 1, 1);
+    cv::resize(edgeResizeImg, edgeResizeImg, cv::Size(50, round(vImg.rows / rate)));
 
-    imshow("vImg", vImg);
-    imshow("edgeResizeImg", edgeResizeImg);
+    cv::imshow("vImg", vImg);
+    cv::imshow("edgeResizeImg", edgeResizeImg);
 
     ///Find positive circles
 
@@ -96,17 +96,17 @@ std::vector<cv::Vec3i> findCircle(cv::Mat orgImg) {
 
     cv::Mat possitiveImg = orgImg.clone();
     for (unsigned int i = 0; i < positiveCircles.size(); i++) {
-        circle(possitiveImg, cv::Point(positiveCircles[i][1], positiveCircles[i][0]), 1, cv::Scalar(0, 0, 255), 3, 8, 0);
-        circle(possitiveImg, cv::Point(positiveCircles[i][1], positiveCircles[i][0]), positiveCircles[i][2], cv::Scalar(0, 0, 255), 1, 8, 0);
+        cv::circle(possitiveImg, cv::Point(positiveCircles[i][1], positiveCircles[i][0]), 1, cv::Scalar(0, 0, 255), 3, 8, 0);
+        cv::circle(possitiveImg, cv::Point(positiveCircles[i][1], positiveCircles[i][0]), positiveCircles[i][2], cv::Scalar(0, 0, 255), 1, 8, 0);
     }
 
-    imshow("possitiveImg", possitiveImg);
+    cv::imshow("possitiveImg", possitiveImg);
 
     ///Find edge of threshold image
     cv::Mat edgeImg;
-    Canny(vImg, edgeImg, 90, 90 * 2, 3);
+    cv::Canny(vImg, edgeImg, 90, 90 * 2, 3);
 
-    imshow("edgeImg", edgeImg);
+    cv::imshow("edgeImg", edgeImg);
 
     ///Find strict cirlce
     std::vector<cv::Vec3i> strictCircle;
@@ -124,8 +124,8 @@ std::vector<std::vector<cv::Point>> simplifyContours(std::vector<std::vector<cv:
             sizeInContours.push_back(inContours[i].size());
         }
 
-        sort(sizeInContours.begin(), sizeInContours.end());
-        reverse(sizeInContours.begin(), sizeInContours.end());
+        std::sort(sizeInContours.begin(), sizeInContours.end());
+        std::reverse(sizeInContours.begin(), sizeInContours.end());
 
         ///Remove noise contours
         std::vector<std::vector<cv::Point>> outContours;
@@ -143,8 +143,8 @@ std::vector<cv::Vec3i> findPositiveCircles(cv::Mat contoursResizeImg, float rate
 
     ///Declare const
     ///i ~ Oy: iMin -> iMax
-    int iMin = cvRound(2 * contoursResizeImg.rows / 5);
-    int iMax = cvRound(3 * contoursResizeImg.rows / 5);
+    int iMin = round(2 * contoursResizeImg.rows / 5);
+    int iMax = round(3 * contoursResizeImg.rows / 5);
     int iStep = 1;
 
     ///j ~ Ox: jMin -> jMax
@@ -167,8 +167,8 @@ std::vector<cv::Vec3i> findPositiveCircles(cv::Mat contoursResizeImg, float rate
                 float angleStep = 2 * PI / noAngle;
                 for (int iAngle = iAngleMin; iAngle < iAngleMax; iAngle++) {
                     float angle = iAngle * angleStep;
-                    int iP = i + cvRound(r * cos(angle));
-                    int jP = j + cvRound(r * sin(angle));
+                    int iP = i + round(r * cos(angle));
+                    int jP = j + round(r * sin(angle));
                     if (iP >= 0 && iP < contoursResizeImg.rows && jP >= 0 && jP < contoursResizeImg.cols) {
                         if (contoursResizeImg.at<uchar>(iP, jP) > 100) {
                             allCircles[i][j][r][0]++;
@@ -190,8 +190,8 @@ std::vector<cv::Vec3i> findPositiveCircles(cv::Mat contoursResizeImg, float rate
     }
 
     ///Sort weight of each circle
-    sort(noPoint.begin(), noPoint.end());
-    reverse(noPoint.begin(), noPoint.end());
+    std::sort(noPoint.begin(), noPoint.end());
+    std::reverse(noPoint.begin(), noPoint.end());
 
     ///Push positive circles to vector roughCircles
     for (int i = iMin; i <= iMax; i += iStep) {
@@ -217,7 +217,7 @@ std::vector<cv::Vec3i> findPositiveCircles(cv::Mat contoursResizeImg, float rate
     ///Calculate real size of positive circles
     std::vector<cv::Vec3i> positiveCircles;
     for (unsigned int i = 0; i < roughCircles.size(); i++) {
-        positiveCircles.push_back(cv::Vec3i(cvRound(rate * roughCircles[i][0]), cvRound(rate * roughCircles[i][1]), cvRound(rate * roughCircles[i][2])));
+        positiveCircles.push_back(cv::Vec3i(round(rate * roughCircles[i][0]), round(rate * roughCircles[i][1]), round(rate * roughCircles[i][2])));
     }
     return positiveCircles;
 }
@@ -253,8 +253,8 @@ std::vector<cv::Vec3i> findStrictCircle(cv::Mat contoursImg, std::vector<cv::Vec
                         float angleStep = 2 * PI / noAngle;
                         for (int iAngle = iAngleMin; iAngle < iAngleMax; iAngle++) {
                             float angle = iAngle * angleStep;
-                            int iP = i + cvRound(r * cos(angle));
-                            int jP = j + cvRound(r * sin(angle));
+                            int iP = i + round(r * cos(angle));
+                            int jP = j + round(r * sin(angle));
                             if (iP >= 0 && iP < contoursImg.rows && jP >= 0 && jP < contoursImg.cols) {
                                 if (contoursImg.at<uchar>(iP, jP) > 100) {
                                     allCircles[i][j][r][0]++;
@@ -276,8 +276,8 @@ std::vector<cv::Vec3i> findStrictCircle(cv::Mat contoursImg, std::vector<cv::Vec
             }
 
             ///Sort weight of each circle
-            sort(noPoint.begin(), noPoint.end());
-            reverse(noPoint.begin(), noPoint.end());
+            std::sort(noPoint.begin(), noPoint.end());
+            std::reverse(noPoint.begin(), noPoint.end());
 
             ///Push the best positives circles to vector strictPositiveCircle
             for (int i = iMin; i <= iMax; i += iStep) {

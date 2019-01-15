@@ -1,9 +1,9 @@
 #include <iostream>
 #include <dirent.h>
 
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 void isDetected(bool& isSuccess, cv::Mat orgImg, cv::Point& point1, cv::Point& point2, cv::Point& center, float& radius);
 std::vector<cv::Vec4i> simplifyLines(std::vector<cv::Vec4i>);
@@ -57,9 +57,9 @@ int main() {
         float radius;
         isDetected(isSuccess, orgImg, point1, point2, center, radius);
 
-        line(orgImg, point1, point2, 255, 2);
-        circle(orgImg, center, 2, cv::Scalar(0, 0, 255), 3, 8, 0);
-        circle(orgImg, center, radius, cv::Scalar(0, 0, 255), 2, 8, 0);
+        cv::line(orgImg, point1, point2, 255, 2);
+        cv::circle(orgImg, center, 2, cv::Scalar(0, 0, 255), 3, 8, 0);
+        cv::circle(orgImg, center, radius, cv::Scalar(0, 0, 255), 2, 8, 0);
         cv::imshow("orgImg", orgImg);
         cv::waitKey(0);
     }
@@ -70,35 +70,35 @@ int main() {
 void isDetected(bool& isSuccess, cv::Mat orgImg, cv::Point& point1, cv::Point& point2, cv::Point& center, float& radius) {
     isSuccess = true;
     cv::Mat yellowImg;
-    cvtColor(orgImg, yellowImg, CV_BGR2YCrCb);
+    cv::cvtColor(orgImg, yellowImg, CV_BGR2YCrCb);
     yellowImg = yellowImg - cv::Scalar(0, 255, 255);
 
     ///Fix size image
     cv::Mat resizeImg;
     float rate = orgImg.cols / 160.0f;
-    resize(yellowImg, resizeImg, cv::Size(160, cvRound(orgImg.rows / rate)));
+    cv::resize(yellowImg, resizeImg, cv::Size(160, round(orgImg.rows / rate)));
 
     ///Convert to hsv image
     cv::Mat hsvImg;
-    cvtColor(resizeImg, hsvImg, CV_BGR2HSV);
+    cv::cvtColor(resizeImg, hsvImg, CV_BGR2HSV);
 
     ///Choose v channel
     cv::Mat vImg;
     vImg.create(hsvImg.size(), hsvImg.depth());
     int from_To[] = {2, 0};
-    mixChannels(&hsvImg, 1, &vImg, 1, from_To, 1);
+    cv::mixChannels(&hsvImg, 1, &vImg, 1, from_To, 1);
 
     ///Threshold v channel
     cv::Mat thresholdImg;
-    threshold(vImg, thresholdImg, 120, 255, CV_THRESH_BINARY);
+    cv::threshold(vImg, thresholdImg, 120, 255, CV_THRESH_BINARY);
 
     ///Erode threshold image
     cv::Mat erodeImg;
-    erode(thresholdImg, erodeImg, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
+    cv::erode(thresholdImg, erodeImg, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
 
     ///Use canny to find edge of threshold image
     cv::Mat edgeImg;
-    Canny(erodeImg, edgeImg, 120, 240, 3);
+    cv::Canny(erodeImg, edgeImg, 120, 240, 3);
     thinning(erodeImg);
 
     ///Merge thinImg and edgeImg
@@ -113,7 +113,7 @@ void isDetected(bool& isSuccess, cv::Mat orgImg, cv::Point& point1, cv::Point& p
     cv::imshow("edgeImg", edgeImg);
     ///Find lines on edge image
     std::vector<cv::Vec4i> lines;
-    HoughLinesP(edgeImg, lines, 1, CV_PI / 180, 20, 50, 10);
+    cv::HoughLinesP(edgeImg, lines, 1, CV_PI / 180, 20, 50, 10);
 
     ///Remove bad lines
     lines = simplifyLines(lines);
@@ -147,27 +147,27 @@ void isDetected(bool& isSuccess, cv::Mat orgImg, cv::Point& point1, cv::Point& p
     }
 
     cv::Mat blurImg;
-    medianBlur(orgImg, blurImg, 3);
+    cv::medianBlur(orgImg, blurImg, 3);
 
-    cvtColor(orgImg, blurImg, CV_RGB2HSV);
+    cv::cvtColor(orgImg, blurImg, CV_RGB2HSV);
     std::vector<cv::Mat> channels;
-    split(blurImg, channels);
+    cv::split(blurImg, channels);
 
     std::vector<cv::Mat> setThres(channels.size());
 
     for (int i = 0; i < 3; i++) {
-        threshold(channels[i], setThres[i], 150, 255, CV_THRESH_OTSU);
+        cv::threshold(channels[i], setThres[i], 150, 255, CV_THRESH_OTSU);
     }
-    bitwise_not(setThres[0], setThres[0]);
+    cv::bitwise_not(setThres[0], setThres[0]);
 
     cv::Mat result = cv::Mat::zeros(channels[0].size(), CV_8UC1);
-    bitwise_and(setThres[0], setThres[2], result);
+    cv::bitwise_and(setThres[0], setThres[2], result);
 
-    cv::Mat element1 = getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3), cv::Point(1, 1));
-    cv::Mat element2 = getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(9, 9), cv::Point(1, 1));
+    cv::Mat element1 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3), cv::Point(1, 1));
+    cv::Mat element2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(9, 9), cv::Point(1, 1));
     cv::Mat img3;
-    erode(result, img3, element1);
-    dilate(img3, img3, element2);
+    cv::erode(result, img3, element1);
+    cv::dilate(img3, img3, element2);
 
     std::vector<float> vectorFloat;
     vectorFloat.insert(vectorFloat.end(), 200);
@@ -213,7 +213,7 @@ std::vector<cv::Vec4i> simplifyLines(std::vector<cv::Vec4i> lines) {
 
 void drawLines(cv::Mat lineImg, std::vector<cv::Vec4i> lines) {
     for (unsigned int i = 0; i < lines.size(); i++) {
-        line(lineImg, cv::Point(lines[i][0], lines[i][1]), cv::Point(lines[i][2], lines[i][3]), 255, 1, CV_AA);
+        cv::line(lineImg, cv::Point(lines[i][0], lines[i][1]), cv::Point(lines[i][2], lines[i][3]), 255, 1, CV_AA);
     }
 }
 
@@ -301,8 +301,8 @@ std::vector<std::vector<cv::Point>> clusterIntersects(std::vector<cv::Point> int
     for (unsigned int i = 0; i < intersectsByCluster.size(); i++) {
         sizeCluster.push_back(intersectsByCluster[i].size());
     }
-    sort(sizeCluster.begin(), sizeCluster.end());
-    reverse(sizeCluster.begin(), sizeCluster.end());
+    std::sort(sizeCluster.begin(), sizeCluster.end());
+    std::reverse(sizeCluster.begin(), sizeCluster.end());
     if (intersectsByCluster.size() < 3) {
         return intersectsByCluster;
     } else {
@@ -329,8 +329,8 @@ std::vector<cv::Point> findCenterOfCluster(std::vector<std::vector<cv::Point>> i
                 yCenter += intersectsByCluster[i][j].y;
             }
 
-            xCenter = cvRound(rate * xCenter / sizeCluster);
-            yCenter = cvRound(rate * yCenter / sizeCluster);
+            xCenter = round(rate * xCenter / sizeCluster);
+            yCenter = round(rate * yCenter / sizeCluster);
 
             centers.push_back(cv::Point(xCenter, yCenter));
         }
@@ -343,9 +343,9 @@ void drawResults(cv::Mat orgImg, std::vector<cv::Point> centers, float rate, int
     for (unsigned int i = 0; i < centers.size(); i++) {
         for (int x = -2; x <= 2; x++) {
             for (int y = -2; y <= 2; y++) {
-                orgImg.at<cv::Vec3b>(cvRound(centers[i].y) + x, cvRound(centers[i].x) + y)[color] = 255;
-                orgImg.at<cv::Vec3b>(cvRound(centers[i].y) + x, cvRound(centers[i].x) + y)[(color + 1) % 3] = 0;
-                orgImg.at<cv::Vec3b>(cvRound(centers[i].y) + x, cvRound(centers[i].x) + y)[(color + 2) % 3] = 0;
+                orgImg.at<cv::Vec3b>(round(centers[i].y) + x, round(centers[i].x) + y)[color] = 255;
+                orgImg.at<cv::Vec3b>(round(centers[i].y) + x, round(centers[i].x) + y)[(color + 1) % 3] = 0;
+                orgImg.at<cv::Vec3b>(round(centers[i].y) + x, round(centers[i].x) + y)[(color + 2) % 3] = 0;
             }
         }
     }
@@ -374,8 +374,8 @@ cv::Point intersectPoint(cv::Point line1_p1, cv::Point line1_p2, cv::Point line2
 
     if (delta != 0) {
         cv::Point p;
-        p.x = cvRound(deltaX / delta);
-        p.y = cvRound(deltaY / delta);
+        p.x = round(deltaX / delta);
+        p.y = round(deltaY / delta);
         return p;
     } else {
         return cv::Point(-1, -1);
@@ -555,12 +555,12 @@ void thinning(cv::Mat& im) {
     do {
         thinningIteration(im, 0);
         thinningIteration(im, 1);
-        absdiff(im, prev, diff);
+        cv::absdiff(im, prev, diff);
         im.copyTo(prev);
         if (i >= max_count)
             break;
         i++;
-    } while (countNonZero(diff) > 0);
+    } while (cv::countNonZero(diff) > 0);
 
     im *= 255;
 }
@@ -570,22 +570,22 @@ void processGetCirclesFindContours(cv::Mat originMat, cv::Mat cropOriginMat, std
 
     cv::Mat clone = originMat.clone();
 
-    findContours(cropOriginMat, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+    cv::findContours(cropOriginMat, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
     std::vector<std::vector<cv::Point>> contour_after;
 
     for (unsigned int i = 0; i < contours.size(); i++) {
         cv::Mat test = cv::Mat::zeros(cropOriginMat.size(), CV_8UC1);
 
-        drawContours(test, contours, i, cv::Scalar(255, 255, 255), CV_FILLED);
+        cv::drawContours(test, contours, i, cv::Scalar(255, 255, 255), CV_FILLED);
 
         cv::Mat binary;
 
-        threshold(test, binary, vectorContourAreaValues[0], vectorContourAreaValues[1], CV_THRESH_BINARY);
+        cv::threshold(test, binary, vectorContourAreaValues[0], vectorContourAreaValues[1], CV_THRESH_BINARY);
 
         cv::Scalar mean_clone;
 
-        mean_clone = mean(clone, binary);
+        mean_clone = cv::mean(clone, binary);
 
         int r = (int)mean_clone[2], g = (int)mean_clone[1], b = (int)mean_clone[0];
 
@@ -603,13 +603,13 @@ void processGetCirclesFindContours(cv::Mat originMat, cv::Mat cropOriginMat, std
 
         std::vector<cv::Point> hull;
 
-        minEnclosingCircle(contour_after[i], center1, radius1);
+        cv::minEnclosingCircle(contour_after[i], center1, radius1);
 
-        convexHull(contour_after[i], hull, false);
+        cv::convexHull(contour_after[i], hull, false);
 
         float area_Circle = (float)(CV_PI * radius1 * radius1);
 
-        float ratio = (float)(contourArea(hull) / area_Circle);
+        float ratio = (float)(cv::contourArea(hull) / area_Circle);
 
         if (ratio > vectorContourAreaValues[5] && area_Circle > CV_PI * vectorContourAreaValues[6] * vectorContourAreaValues[6]) {
             center.x = center1.x;

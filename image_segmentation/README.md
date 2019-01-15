@@ -1,5 +1,5 @@
-# Image segmentation by using graphcuts algorithm and watershed algorithm
-Using graphcuts algorithm and wateshed algorithm to segment images.
+# Image segmentation by using grabcut algorithm and watershed algorithm
+Using grabcut algorithm and wateshed algorithm to segment images.
 
 ## Build project
 Build project with cmake:
@@ -16,9 +16,9 @@ Copy test data to build folder:
 cp -r ../../../computer_vision_anlab_data/image_segmentation/build/* .
 ```
 
-Run graphcuts segmentation:
+Run grabcut segmentation:
 ```
-./graphcuts_segmentation
+./grabcut_segmentation
 ```
 
 Run watershed segmentation:

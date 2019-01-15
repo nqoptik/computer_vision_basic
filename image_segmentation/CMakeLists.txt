@@ -9,5 +9,5 @@ find_package(OpenCV REQUIRED)
 add_executable(watershed_segmentation src/watershed_segmentation.cpp)
 target_link_libraries(watershed_segmentation ${OpenCV_LIBS})
 
-add_executable(graphcuts_segmentation src/graphcuts_segmentation.cpp)
-target_link_libraries(graphcuts_segmentation ${OpenCV_LIBS})
+add_executable(grabcut_segmentation src/grabcut_segmentation.cpp)
+target_link_libraries(grabcut_segmentation ${OpenCV_LIBS})

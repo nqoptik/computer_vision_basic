@@ -2,11 +2,10 @@
 #include <dirent.h>
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
-std::vector<std::vector<cv::Point> > foreGround;
-
+std::vector<std::vector<cv::Point>> foreGround;
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
 
 int main() {
@@ -47,38 +46,27 @@ int main() {
         cv::setMouseCallback("appliedImg", CallBackFunc, NULL);
         cv::waitKey();
 
-        cv::Rect rectangle;
-
-        cv::Mat1b result(image.rows, image.cols);  // segmentation result (4 possible values)
+        cv::Mat1b result(image.rows, image.cols);
         result.setTo(cv::GC_PR_BGD);
 
         for (unsigned int i = 0; i < foreGround.size(); i++) {
             for (unsigned int j = 0; j < foreGround[i].size(); j++) {
-                line(result, foreGround[i][j], foreGround[i][(j + 1) % foreGround[i].size()], cv::GC_PR_FGD, 10);
+                cv::line(result, foreGround[i][j], foreGround[i][(j + 1) % foreGround[i].size()], cv::GC_PR_FGD, 10);
             }
         }
 
-        cv::Mat bgModel, fgModel;  // the models (internally used)
-
         // GrabCut segmentation
-        cv::grabCut(image,                   // input image
-                    result,                  // segmentation result
-                    rectangle,               // rectangle containing foreground
-                    bgModel, fgModel,        // models
-                    1,                       // number of iterations
-                    cv::GC_INIT_WITH_MASK);  // use rectangle
+        cv::grabCut(image, result, cv::Rect(), cv::Mat(), cv::Mat(), 1, cv::GC_INIT_WITH_MASK);
 
         // Get the pixels marked as likely foreground
-        compare(result, cv::GC_PR_FGD, result, cv::CMP_EQ);
+        cv::compare(result, cv::GC_PR_FGD, result, cv::CMP_EQ);
 
         // Generate output image
         cv::Mat foreground(image.size(), CV_8UC3, cv::Scalar(0, 0, 0));
-        image.copyTo(foreground, result);  // bg pixels not copied
-
-        // draw rectangle on original image
+        image.copyTo(foreground, result);
         cv::imshow("Segmented Image", foreground);
-        cv::waitKey();
     }
+    cv::waitKey();
 
     return 0;
 }

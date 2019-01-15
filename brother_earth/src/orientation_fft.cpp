@@ -3,8 +3,8 @@
 #include <fftw3.h>
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 const float PI = 3.14159265f;
 
@@ -62,18 +62,18 @@ int main() {
 
         for (unsigned int i = 0; i < centerLines.size(); i++) {
             if (i == 0) {
-                line(orgImg, cv::Point(centerLines[i][0], centerLines[i][1]), cv::Point(centerLines[i][2], centerLines[i][3]), cv::Scalar(255, 0, 0), 2);
+                cv::line(orgImg, cv::Point(centerLines[i][0], centerLines[i][1]), cv::Point(centerLines[i][2], centerLines[i][3]), cv::Scalar(255, 0, 0), 2);
             } else if (i == 1) {
-                line(orgImg, cv::Point(centerLines[i][0], centerLines[i][1]), cv::Point(centerLines[i][2], centerLines[i][3]), cv::Scalar(0, 255, 0), 2);
+                cv::line(orgImg, cv::Point(centerLines[i][0], centerLines[i][1]), cv::Point(centerLines[i][2], centerLines[i][3]), cv::Scalar(0, 255, 0), 2);
             } else if (i == 2) {
-                line(orgImg, cv::Point(centerLines[i][0], centerLines[i][1]), cv::Point(centerLines[i][2], centerLines[i][3]), cv::Scalar(0, 0, 255), 2);
+                cv::line(orgImg, cv::Point(centerLines[i][0], centerLines[i][1]), cv::Point(centerLines[i][2], centerLines[i][3]), cv::Scalar(0, 0, 255), 2);
             } else {
-                line(orgImg, cv::Point(centerLines[i][0], centerLines[i][1]), cv::Point(centerLines[i][2], centerLines[i][3]), cv::Scalar(255, 255, 255), 2);
+                cv::line(orgImg, cv::Point(centerLines[i][0], centerLines[i][1]), cv::Point(centerLines[i][2], centerLines[i][3]), cv::Scalar(255, 255, 255), 2);
             }
             std::cout << "angle: " << centerAngles[i] * 180 / PI << std::endl;
         }
 
-        imshow("orgImg", orgImg);
+        cv::imshow("orgImg", orgImg);
         cv::waitKey();
     }
     closedir(pDir);
@@ -156,7 +156,7 @@ std::vector<cv::Vec4i> findDirection(cv::Mat orgImg, std::vector<float>& centerA
     q1.copyTo(tmp);
     q2.copyTo(q1);
     tmp.copyTo(q2);
-    normalize(img2, img2, 0, 255, CV_MINMAX);
+    cv::normalize(img2, img2, 0, 255, CV_MINMAX);
 
     cv::Mat ucharMagImg;
 
