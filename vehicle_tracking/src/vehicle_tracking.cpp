@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
     //take first frame as original background
     cv::Mat background;
     video >> background;
-    resize(background, background, commonSize, 0, 0, cv::INTER_NEAREST);
+    cv::resize(background, background, commonSize, 0, 0, cv::INTER_NEAREST);
 
     excute(video, background);
     cv::waitKey(0);
@@ -89,7 +89,7 @@ void excute(cv::VideoCapture& video, cv::Mat& background) {
     setupTrails(numOfDetectedObjects, numOfPredictedObjects, trails, KalmanStatus);
     double t1 = clock();
     for (;;) {
-        imshow("background", background);
+        cv::imshow("background", background);
         curF = realIndexOfFrame % numOfBufferFrames;
 
         video >> frame;
@@ -99,9 +99,9 @@ void excute(cv::VideoCapture& video, cv::Mat& background) {
             std::cout << "End of video." << std::endl;
         }
 
-        resize(frame, frame, commonSize, 0, 0, cv::INTER_NEAREST);
+        cv::resize(frame, frame, commonSize, 0, 0, cv::INTER_NEAREST);
 
-        difference = abs(frame - background);
+        difference = cv::abs(frame - background);
         foreground = getForegroundFromDifference(difference);
 
         std::vector<std::vector<cv::Point>> contours;
@@ -121,9 +121,9 @@ void excute(cv::VideoCapture& video, cv::Mat& background) {
             if (paths[i].size() > 1) {
                 for (unsigned int j = 0; j < paths[i].size() - 1; j++) {
                     if (ticks[i][j]) {
-                        line(frame, paths[i][j], paths[i][j + 1], cv::Scalar(0, 255 - j * 2, 0), 2);
+                        cv::line(frame, paths[i][j], paths[i][j + 1], cv::Scalar(0, 255 - j * 2, 0), 2);
                     } else {
-                        line(frame, paths[i][j], paths[i][j + 1], cv::Scalar(0, 0, 255 - j * 2), 2);
+                        cv::line(frame, paths[i][j], paths[i][j + 1], cv::Scalar(0, 0, 255 - j * 2), 2);
                     }
                 }
             }
@@ -133,34 +133,34 @@ void excute(cv::VideoCapture& video, cv::Mat& background) {
 
                 for (int j = 0; j < maxDegreeOfPrediction; j++) {
                     if (paths[i][j].y < 240) {
-                        length += cvRound(EuclidDistance(paths[i][j].x, paths[i][j].y, paths[i][j + 1].x, paths[i][j + 1].y) * (2.7 - paths[i][j].y * 2.7 / frame.rows));
+                        length += round(EuclidDistance(paths[i][j].x, paths[i][j].y, paths[i][j + 1].x, paths[i][j + 1].y) * (2.7 - paths[i][j].y * 2.7 / frame.rows));
                     } else {
                         length += EuclidDistance(paths[i][j].x, paths[i][j].y, paths[i][j + 1].x, paths[i][j + 1].y);
                     }
                 }
-                length = cvRound(2 * length / (float)maxDegreeOfPrediction);
+                length = round(2 * length / (float)maxDegreeOfPrediction);
 
                 if (ticks[i][0]) {
                     std::string str = std::to_string(length);
                     str.append("km/h");
                     cv::Point textPosition = cv::Point(trails[curF][i][1] - 40, trails[curF][i][2] - 5);
-                    putText(frame, str, textPosition, cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 255), 2, 8);
+                    cv::putText(frame, str, textPosition, cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 255), 2, 8);
                 }
             }
 
             if (ticks[i][0] && paths[i].size() > maxDegreeOfPrediction) {
                 std::string str = std::to_string(trails[curF][i][5]);
                 cv::Point textPosition = cv::Point(trails[curF][i][1] - 40, trails[curF][i][2] + 25);
-                putText(frame, str, textPosition, cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 0, 255), 2, 8);
+                cv::putText(frame, str, textPosition, cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 0, 255), 2, 8);
             }
         }
         std::string str = "frame:";
         str.append(std::to_string(realIndexOfFrame));
         cv::Point textPosition = cv::Point(5, 25);
-        putText(frame, str, textPosition, cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 125, 255), 2, 8);
+        cv::putText(frame, str, textPosition, cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 125, 255), 2, 8);
 
         if (realIndexOfFrame > weightOfBackground)
-            imshow("frame", frame);
+            cv::imshow("frame", frame);
         if (realIndexOfFrame < weightOfBackground)
             cv::waitKey(1);
         else
@@ -193,16 +193,16 @@ void setupTrails(int numOfDetectedObjects[numOfBufferFrames], int numOfPredicted
 
 cv::Mat getForegroundFromDifference(cv::Mat difference) {
     cv::Mat foreground;
-    threshold(difference, foreground, thresholdForDifference, 255, CV_THRESH_BINARY);
-    cvtColor(foreground, foreground, CV_BGR2GRAY);
-    threshold(foreground, foreground, 5, 255, CV_THRESH_BINARY);
+    cv::threshold(difference, foreground, thresholdForDifference, 255, CV_THRESH_BINARY);
+    cv::cvtColor(foreground, foreground, CV_BGR2GRAY);
+    cv::threshold(foreground, foreground, 5, 255, CV_THRESH_BINARY);
 
     //eliminate external regions (depend the video)
     eliminateExternalRegions(foreground);
 
     dilate(foreground, foreground, cv::Mat(), cv::Point(-1, -1), 1, 1, 1);
     //erode(foreground, foreground, cv::Mat(), cv::Point(-1, -1), 1, 1, 1);
-    imshow("foreground", foreground);
+    cv::imshow("foreground", foreground);
     return foreground;
 }
 
@@ -222,7 +222,7 @@ void eliminateExternalRegions(cv::Mat& foreground) {
 
 void getObjectInfomationFromForeground(cv::Mat foreground, cv::Mat& foreArea, std::vector<std::vector<cv::Point>>& contours, std::vector<cv::Rect>& boundRects) {
     std::vector<cv::Vec4i> hierarchy;
-    findContours(foreground, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    cv::findContours(foreground, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 
     eliminateSmallContours(contours);
 
@@ -238,7 +238,7 @@ void getObjectInfomationFromForeground(cv::Mat foreground, cv::Mat& foreArea, st
 void eliminateSmallContours(std::vector<std::vector<cv::Point>>& contours) {
     int i = contours.size() - 1;
     while (i >= 0) {
-        if (contourArea(contours[i]) < minObjestArea) {
+        if (cv::contourArea(contours[i]) < minObjestArea) {
             contours.erase(contours.begin() + i, contours.begin() + i + 1);
         }
         i--;
@@ -248,19 +248,19 @@ void eliminateSmallContours(std::vector<std::vector<cv::Point>>& contours) {
 void correctContours(cv::Mat& foreArea, std::vector<std::vector<cv::Point>>& contours, std::vector<cv::Vec4i> hierarchy) {
     for (unsigned int i = 0; i < contours.size(); i++) {
         if (contours[i].size() > 3) {
-            convexHull(contours[i], contours[i]);
+            cv::convexHull(cv::Mat(contours[i]).clone(), contours[i]);
         }
     }
 
     foreArea = cv::Mat::zeros(commonSize, CV_8UC3);
 
     for (size_t i = 0; i < contours.size(); i++) {
-        drawContours(foreArea, contours, i, cv::Scalar(255, 255, 255), CV_FILLED);
+        cv::drawContours(foreArea, contours, i, cv::Scalar(255, 255, 255), CV_FILLED);
     }
     cv::Mat contoursImg;
-    cvtColor(foreArea, contoursImg, CV_BGR2GRAY);
+    cv::cvtColor(foreArea, contoursImg, CV_BGR2GRAY);
 
-    findContours(contoursImg, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+    cv::findContours(contoursImg, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 }
 
 void eliminateBorderObjects(std::vector<std::vector<cv::Point>>& contours, std::vector<cv::Rect>& boundRects) {
@@ -306,8 +306,9 @@ void track(int numOfDetectedObjects[numOfBufferFrames], int numOfPredictedObject
     int nexJ;
     for (int curI = 0; curI < numOfDetectedObjects[curF]; curI++) {
         nexJ = maxNumOfDetectedObjectsPerFrame + numOfPredictedObjects[nexF];
+
         ///Step 1: get object information
-        trails[curF][curI][0] = cvRound(contourArea(contours[curI]));
+        trails[curF][curI][0] = round(cv::contourArea(contours[curI]));
         int mx = (boundRects[curI].x + boundRects[curI].br().x) / 2;
         int my = (boundRects[curI].y + boundRects[curI].br().y) / 2;
 
@@ -381,8 +382,8 @@ void track(int numOfDetectedObjects[numOfBufferFrames], int numOfPredictedObject
                 trails[curF][curI][3] = preJ;
                 trails[curF][curI][4] = 0;
                 trails[curF][curI][5] = KalmanIndex;
-                //now we predict next frame
 
+                //now we predict next frame
                 trails[nexF][nexJ][0] = trails[curF][curI][0];
                 trails[nexF][nexJ][1] = p.x;
                 trails[nexF][nexJ][2] = p.y;
@@ -490,12 +491,12 @@ void track(int numOfDetectedObjects[numOfBufferFrames], int numOfPredictedObject
 void updateBackground(cv::Mat frame, cv::Mat foreArea, cv::Mat& background, int realIndexOfFrame) {
     cv::Mat combinedArea, backArea, joinedArea;
     combinedArea = (frame + background * 4) / 5;
-    bitwise_not(foreArea, backArea);
+    cv::bitwise_not(foreArea, backArea);
 
-    bitwise_and(foreArea, combinedArea, foreArea);
-    bitwise_and(backArea, frame, backArea);
-    bitwise_or(foreArea, backArea, joinedArea);
-    imshow("joinedArea", joinedArea);
+    cv::bitwise_and(foreArea, combinedArea, foreArea);
+    cv::bitwise_and(backArea, frame, backArea);
+    cv::bitwise_or(foreArea, backArea, joinedArea);
+    cv::imshow("joinedArea", joinedArea);
 
     if (realIndexOfFrame < weightOfBackground) {
         background = (frame + background * realIndexOfFrame) / (realIndexOfFrame + 1);
@@ -579,7 +580,7 @@ void findPaths(int numOfDetectedObjects[numOfBufferFrames], int numOfPredictedOb
 
 void drawBoundingBox(cv::Mat& image, std::vector<cv::Rect> boundRects) {
     for (unsigned int i = 0; i < boundRects.size(); i++) {
-        rectangle(image, boundRects[i].tl(), boundRects[i].br(), cv::Scalar(255, 0, 0), 2, 8, 0);
+        cv::rectangle(image, boundRects[i].tl(), boundRects[i].br(), cv::Scalar(255, 0, 0), 2, 8, 0);
     }
 }
 
@@ -598,16 +599,16 @@ void initKalman(cv::KalmanFilter KF[maxNumOfDetectedObjectsPerFrame], int Kalman
     KF[KalmanIndex].statePost.at<float>(0, 0) = x;
     KF[KalmanIndex].statePost.at<float>(1, 0) = y;
 
-    KF[KalmanIndex].transitionMatrix = *(cv::Mat_<float>(4, 4) << 1, 0, 0.8, 0, 0, 1, 0, 0.8, 0, 0, 1, 0, 0, 0, 0, 1);
-    setIdentity(KF[KalmanIndex].measurementMatrix);
-    setIdentity(KF[KalmanIndex].processNoiseCov, cv::Scalar::all(1e-2));
-    setIdentity(KF[KalmanIndex].measurementNoiseCov, cv::Scalar::all(1e-1));
-    setIdentity(KF[KalmanIndex].errorCovPost, cv::Scalar::all(.1));
+    KF[KalmanIndex].transitionMatrix = (cv::Mat_<float>(4, 4) << 1, 0, 0.8, 0, 0, 1, 0, 0.8, 0, 0, 1, 0, 0, 0, 0, 1);
+    cv::setIdentity(KF[KalmanIndex].measurementMatrix);
+    cv::setIdentity(KF[KalmanIndex].processNoiseCov, cv::Scalar::all(1e-2));
+    cv::setIdentity(KF[KalmanIndex].measurementNoiseCov, cv::Scalar::all(1e-1));
+    cv::setIdentity(KF[KalmanIndex].errorCovPost, cv::Scalar::all(.1));
 }
 
 cv::Point kalmanPredict(cv::KalmanFilter KF[maxNumOfDetectedObjectsPerFrame], int KalmanIndex) {
     cv::Mat prediction = KF[KalmanIndex].predict();
-    cv::Point predictPt(cvRound(prediction.at<float>(0)), cvRound(prediction.at<float>(1)));
+    cv::Point predictPt(round(prediction.at<float>(0)), round(prediction.at<float>(1)));
     return predictPt;
 }
 
@@ -616,12 +617,12 @@ cv::Point kalmanCorrect(cv::KalmanFilter KF[maxNumOfDetectedObjectsPerFrame], in
     measurement(0) = x;
     measurement(1) = y;
     cv::Mat estimated = KF[KalmanIndex].correct(measurement);
-    cv::Point statePt(cvRound(estimated.at<float>(0)), cvRound(estimated.at<float>(1)));
+    cv::Point statePt(round(estimated.at<float>(0)), round(estimated.at<float>(1)));
     return statePt;
 }
 
 int EuclidDistance(int x1, int y1, int x2, int y2) {
     int dx = x2 - x1;
     int dy = y2 - y1;
-    return cvRound(sqrt((float)(dx * dx + dy * dy)));
+    return round(sqrt((float)(dx * dx + dy * dy)));
 }
