@@ -1,11 +1,12 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <dirent.h>
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/xfeatures2d.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
 
@@ -14,7 +15,7 @@
 
 const int maxImgSize = 30;
 const cv::Mat_<double> K = (cv::Mat_<double>(3, 3) << 2759.48, 0, 1520.69, 0, 2764.16, 1006.81, 0, 0, 1);
-const std::string inputPath = "input_images/00*.png";
+const std::string inputPath = "input_images/";
 const std::string outputPath = "pointcloud.ply";
 const int gridSize = 13;
 const int cellSize = 5;
@@ -22,6 +23,7 @@ const float goodRatio = 0.55f;
 const float minCorrectRatio = 0.25f;
 const float step = 0.05f;
 const int noStep = 10;
+const int min_pairs_findFundamentalMat = 20;
 const int noVisible = 3;
 const double visibleCos = 0.85;
 const double goodPhotometric = 39;
@@ -72,7 +74,7 @@ void detectKeyPointsAndComputeDescriptors(cv::Mat image, ImgInfos& iif);
 void getSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches);
 void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches, int& minPatchIdx);
 void matchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv::DMatch>>& matches, std::vector<float>& ratios);
-void choseMatches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, float acceptedRatio, std::vector<cv::DMatch>& acceptedMatches);
+void chooseMatches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, float acceptedRatio, std::vector<cv::DMatch>& acceptedMatches);
 void getPatchFromMatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches, int idx_0, int idx_1, std::vector<cv::DMatch> goodMatches, std::vector<cv::DMatch> correctMatches);
 void finFundamentalMatrix(std::vector<cv::KeyPoint> kp_0, std::vector<cv::KeyPoint> kp_1, std::vector<cv::DMatch> correctMatches, cv::Mat& F);
 void triangulatePatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches, std::vector<cv::DMatch> goodMatches, cv::Matx34d P_0, int idx_0, cv::Matx34d P_1, int idx_1);
@@ -120,11 +122,29 @@ double cvNorm2(cv::Point3d x) {
 }
 
 void loadImages(std::vector<cv::Mat>& images) {
-    std::vector<std::string> filenames;
-    cv::glob(inputPath, filenames);
-    for (size_t i = 0; i < filenames.size(); ++i) {
-        std::cout << filenames[i] << std::endl;
-        cv::Mat image = cv::imread(filenames[i]);
+    DIR* pDir;
+    pDir = opendir(inputPath.c_str());
+    if (pDir == NULL) {
+        std::cout << "Directory not found." << std::endl;
+        return;
+    }
+
+    struct dirent* pDirent;
+    std::vector<std::string> img_paths;
+    while ((pDirent = readdir(pDir)) != NULL) {
+        if (strcmp(pDirent->d_name, ".") == 0 || strcmp(pDirent->d_name, "..") == 0) {
+            continue;
+        }
+        std::string imgPath = inputPath;
+        imgPath.append(pDirent->d_name);
+        img_paths.push_back(imgPath);
+    }
+    closedir(pDir);
+
+    std::sort(img_paths.begin(), img_paths.end());
+    for (size_t i = 0; i < img_paths.size(); ++i) {
+        std::cout << img_paths[i] << std::endl;
+        cv::Mat image = cv::imread(img_paths[i]);
         if (image.empty()) {
             break;
         }
@@ -172,9 +192,9 @@ void detectKeyPointsAndComputeDescriptors(cv::Mat image, ImgInfos& iif) {
     iif.img = image;
 
     ///Detect key points using SIFT
-    cv::SiftFeatureDetector detector;
+    cv::Ptr<cv::Feature2D> f2d = cv::xfeatures2d::SIFT::create();
     std::vector<cv::KeyPoint> keypoints_0, keypoints_1;
-    detector.detect(image, keypoints_0);
+    f2d->detect(image, keypoints_0);
     for (unsigned int i = 0; i < keypoints_0.size(); i++) {
         float x = keypoints_0[i].pt.x;
         float y = keypoints_0[i].pt.y;
@@ -183,13 +203,11 @@ void detectKeyPointsAndComputeDescriptors(cv::Mat image, ImgInfos& iif) {
             keypoints_1.push_back(keypoints_0[i]);
         }
     }
-
     iif.kp = keypoints_1;
 
     ///Compute descriptors using SIFT
-    cv::SiftDescriptorExtractor extractor;
     cv::Mat descriptors;
-    extractor.compute(image, keypoints_1, descriptors);
+    f2d->compute(image, keypoints_1, descriptors);
     iif.des = descriptors;
 }
 
@@ -208,8 +226,8 @@ void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPa
 
     ///Chose good matches
     std::vector<cv::DMatch> goodMatches_0, goodMatches_1;
-    choseMatches(matches_0, ratios_0, goodRatio, goodMatches_0);
-    choseMatches(matches_1, ratios_1, goodRatio, goodMatches_1);
+    chooseMatches(matches_0, ratios_0, goodRatio, goodMatches_0);
+    chooseMatches(matches_1, ratios_1, goodRatio, goodMatches_1);
 
     ///Find parameters for CV_FM_LMEDS method
     double minErrorRate = 10;
@@ -221,7 +239,10 @@ void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPa
         std::vector<Patch> patches_0;
         std::vector<cv::DMatch> correctMatches_0;
         float correctRatio_0 = minCorrectRatio + loop_i * step;
-        choseMatches(matches_0, ratios_0, correctRatio_0, correctMatches_0);
+        chooseMatches(matches_0, ratios_0, correctRatio_0, correctMatches_0);
+        if (correctMatches_0.size() < min_pairs_findFundamentalMat) {
+            continue;
+        }
         getPatchFromMatches(iifs, patches_0, 0, 1,
                             goodMatches_0, correctMatches_0);
 
@@ -229,7 +250,10 @@ void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPa
             std::vector<Patch> patches_1;
             std::vector<cv::DMatch> correctMatches_1;
             float correctRatio_1 = minCorrectRatio + loop_j * step;
-            choseMatches(matches_1, ratios_1, correctRatio_1, correctMatches_1);
+            chooseMatches(matches_1, ratios_1, correctRatio_1, correctMatches_1);
+            if (correctMatches_1.size() < min_pairs_findFundamentalMat) {
+                continue;
+            }
             getPatchFromMatches(iifs, patches_1, 1, 2,
                                 goodMatches_1, correctMatches_1);
 
@@ -289,7 +313,7 @@ void matchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv::
     }
 }
 
-void choseMatches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, float acceptedRatio, std::vector<cv::DMatch>& acceptedMatches) {
+void chooseMatches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, float acceptedRatio, std::vector<cv::DMatch>& acceptedMatches) {
     acceptedMatches.clear();
     for (unsigned int i = 0; i < matches.size(); i++) {
         if (ratios[i] <= acceptedRatio) {
@@ -331,7 +355,7 @@ void finFundamentalMatrix(std::vector<cv::KeyPoint> kp_0, std::vector<cv::KeyPoi
 
     ///Find fundamental matrix from corresponding points
     cv::Mat mask;
-    F = findFundamentalMat(points_0, points_1, CV_FM_LMEDS, 3., 0.99, mask);
+    F = cv::findFundamentalMat(points_0, points_1, CV_FM_LMEDS, 3., 0.99, mask);
 }
 
 void triangulatePatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches, std::vector<cv::DMatch> goodMatches, cv::Matx34d P_0, int idx_0, cv::Matx34d P_1, int idx_1) {
@@ -417,7 +441,7 @@ void getMoreSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPat
         std::vector<float> ratios;
         matchDescriptors(iifs[idx_0].des, iifs[idx_1].des, matches, ratios);
         std::vector<cv::DMatch> goodMatches;
-        choseMatches(matches, ratios, goodRatio, goodMatches);
+        chooseMatches(matches, ratios, goodRatio, goodMatches);
         std::vector<Patch> bestPatches;
         float bestCorrectRatio = minCorrectRatio;
         double minErrorRate = 10;
@@ -427,7 +451,10 @@ void getMoreSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPat
             std::vector<Patch> patches;
             std::vector<cv::DMatch> correctMatches;
             float correctRatio = minCorrectRatio + loop * step;
-            choseMatches(matches, ratios, correctRatio, correctMatches);
+            chooseMatches(matches, ratios, correctRatio, correctMatches);
+            if (correctMatches.size() < min_pairs_findFundamentalMat) {
+                continue;
+            }
             getPatchFromMatches(iifs, patches, idx_0, idx_1,
                                 goodMatches, correctMatches);
             std::vector<cv::Point3d> pts_0, pts_1;
@@ -502,8 +529,8 @@ void calculateImgInfos(std::vector<ImgInfos>& iifs) {
 
     ///Cells
     for (unsigned int i = 0; i < iifs.size() - 1; i++) {
-        iifs[i].C_0 = cv::Mat::zeros(cvFloor(iifs[i].img.rows / cellSize) + 1,
-                                     cvFloor(iifs[i].img.cols / cellSize) + 1, CV_32SC1);
+        iifs[i].C_0 = cv::Mat::zeros(floor(iifs[i].img.rows / cellSize) + 1,
+                                     floor(iifs[i].img.cols / cellSize) + 1, CV_32SC1);
     }
 }
 
@@ -704,7 +731,7 @@ void calculatePhotometric(std::vector<ImgInfos> iifs, Patch& patch) {
             cv::Mat Affine = getAffineTransform(srcPoints, dstPoints);
             cv::Mat reprojectColor = cv::Mat::zeros(gridSize, gridSize, CV_8UC3);
             cv::warpAffine(iifs[iIdx].img, reprojectColor, Affine, reprojectColor.size());
-            g += norm(reprojectColor - patch.grid.color, cv::NORM_L1);
+            g += cv::norm(reprojectColor - patch.grid.color, cv::NORM_L1);
         }
     }
     patch.g = g / (gridSize * gridSize * (patch.V.size() - 1));
@@ -733,8 +760,8 @@ void projectSeedPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Pat
             x.at<double>(0, 0) /= x.at<double>(2, 0);
             x.at<double>(1, 0) /= x.at<double>(2, 0);
 
-            int row = cvFloor(x.at<double>(1, 0) / cellSize);
-            int col = cvFloor(x.at<double>(0, 0) / cellSize);
+            int row = floor(x.at<double>(1, 0) / cellSize);
+            int col = floor(x.at<double>(0, 0) / cellSize);
             if (row > 0 && row < iifs[j].C_0.rows &&
                 col > 0 && col < iifs[j].C_0.cols) {
                 if (iIdx == seedPatches[i].R) {
@@ -751,8 +778,8 @@ void projectSeedPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Pat
 
 void markCellsToExpand(std::vector<ImgInfos>& iifs) {
     for (unsigned int i = 0; i < iifs.size() - 1; i++) {
-        iifs[i].C_1 = cv::Mat::zeros(cvFloor(iifs[i].img.rows / cellSize) + 1,
-                                     cvFloor(iifs[i].img.cols / cellSize) + 1, CV_32SC1);
+        iifs[i].C_1 = cv::Mat::zeros(floor(iifs[i].img.rows / cellSize) + 1,
+                                     floor(iifs[i].img.cols / cellSize) + 1, CV_32SC1);
     }
 
     for (unsigned int i = 0; i < iifs.size() - 1; i++) {
@@ -886,8 +913,8 @@ void projectNewPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Patc
             x.at<double>(0, 0) /= x.at<double>(2, 0);
             x.at<double>(1, 0) /= x.at<double>(2, 0);
 
-            int row = cvFloor(x.at<double>(1, 0) / cellSize);
-            int col = cvFloor(x.at<double>(0, 0) / cellSize);
+            int row = floor(x.at<double>(1, 0) / cellSize);
+            int col = floor(x.at<double>(0, 0) / cellSize);
             if (row > 0 && row < iifs[j].C_0.rows &&
                 col > 0 && col < iifs[j].C_0.cols) {
                 if (iIdx == seedPatches[i].R) {

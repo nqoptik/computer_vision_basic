@@ -35,7 +35,7 @@ cv::Mat_<double> cvLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point
         -(u1.y * P1(2, 3) - P1(1, 3)));
     /*Solve for X*/
     cv::Mat_<double> X;
-    solve(A, B, X, cv::DECOMP_SVD);
+    cv::solve(A, B, X, cv::DECOMP_SVD);
     return X;
 }
 
@@ -73,7 +73,7 @@ cv::Mat_<double> cvIterativeLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, 
                               -(u1.x * P1(2, 3) - P1(0, 3)) / wi1,
                               -(u1.y * P1(2, 3) - P1(1, 3)) / wi1);
 
-        solve(A, B, X_, cv::DECOMP_SVD);
+        cv::solve(A, B, X_, cv::DECOMP_SVD);
         X(0) = X_(0);
         X(1) = X_(1);
         X(2) = X_(2);

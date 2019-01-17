@@ -6,7 +6,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/nonfree/nonfree.hpp>
+#include <opencv2/xfeatures2d.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
 #include "3d_reconstruction/norm.h"
@@ -41,8 +41,8 @@ struct PointInCL {
 /*Function headers*/
 void modelRegistration(std::vector<PointInCL>& glbCloud, std::string path, int first, int last);
 void getMultipleClouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::vector<PointInCL>& cloud);
-void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatch> > BFMatches, std::vector<float> BFRatios, std::vector<float> BFSortedRatios, std::vector<cv::DMatch> samplingMatches, int idx_0, int idx_1, cv::Mat_<double>& bestR, cv::Mat_<double>& bestT);
-void jointClouds(std::vector<std::vector<PointInCL> > mtpclouds, std::vector<PointInCL>& glbCloud);
+void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatch>> BFMatches, std::vector<float> BFRatios, std::vector<float> BFSortedRatios, std::vector<cv::DMatch> samplingMatches, int idx_0, int idx_1, cv::Mat_<double>& bestR, cv::Mat_<double>& bestT);
+void jointClouds(std::vector<std::vector<PointInCL>> mtpclouds, std::vector<PointInCL>& glbCloud);
 void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> pts_1, cv::Mat_<double> R, cv::Mat_<double> T, double& errorRate, int& worstIdx, double& quantity);
 void drawCloud(std::vector<PointInCL> cloud, std::string path);
 void exportModel(std::vector<PointInCL> cloud, std::string path);
@@ -67,10 +67,10 @@ void modelRegistration(std::vector<PointInCL>& glbCloud, std::string path, int f
     std::vector<ImgInfos> iifs;
     for (unsigned int i = 0; i < images.size(); i++) {
         std::cout << "Number of key points in images " << i << ": ";
-        cv::SIFT sift;
+        cv::Ptr<cv::Feature2D> f2d = cv::xfeatures2d::SIFT::create();
         std::vector<cv::KeyPoint> kp;
         cv::Mat des;
-        sift(images[i], cv::Mat(), kp, des);
+        f2d->detectAndCompute(images[i], cv::Mat(), kp, des);
         ImgInfos iif;
         iif.img = images[i];
         iif.kp = kp;
@@ -80,7 +80,7 @@ void modelRegistration(std::vector<PointInCL>& glbCloud, std::string path, int f
     }
 
     /*Get multiple clouds*/
-    std::vector<std::vector<PointInCL> > mtpClouds;
+    std::vector<std::vector<PointInCL>> mtpClouds;
     for (unsigned int i = 0; i < iifs.size() - 1; i++) {
         std::vector<PointInCL> cloud;
         getMultipleClouds(iifs, i, i + 1, cloud);
@@ -100,7 +100,7 @@ void modelRegistration(std::vector<PointInCL>& glbCloud, std::string path, int f
 }
 
 void getMultipleClouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::vector<PointInCL>& cloud) {
-    std::vector<std::vector<cv::DMatch> > BFMatches;
+    std::vector<std::vector<cv::DMatch>> BFMatches;
     std::vector<float> BFRatios, BFSortedRatios;
     BFMatchDescriptors(iifs[idx_0].des, iifs[idx_1].des, BFMatches, BFRatios,
                        BFSortedRatios);
@@ -194,13 +194,16 @@ void getMultipleClouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::v
     cv::imwrite(correctMathcesPath, img_correctMatches);
 }
 
-void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatch> > BFMatches, std::vector<float> BFRatios, std::vector<float> BFSortedRatios, std::vector<cv::DMatch> samplingMatches, int idx_0, int idx_1, cv::Mat_<double>& bestR, cv::Mat_<double>& bestT) {
+void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatch>> BFMatches, std::vector<float> BFRatios, std::vector<float> BFSortedRatios, std::vector<cv::DMatch> samplingMatches, int idx_0, int idx_1, cv::Mat_<double>& bestR, cv::Mat_<double>& bestT) {
     cv::Matx34d P_0(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
     int max_NoGoodPoints = 0;
     unsigned int bestLoop = 8;
     for (unsigned int loop = 8; loop < noConsideringMatches; loop++) {
         std::vector<cv::DMatch> consideringMatches;
         chooseMatches(BFMatches, BFRatios, BFSortedRatios, loop, consideringMatches);
+        if (consideringMatches.size() < 20) {
+            continue;
+        }
 
         /*Take corresponding points*/
         std::vector<cv::Point2f> leftPts, rightPts;
@@ -209,7 +212,7 @@ void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatc
             rightPts.push_back(iifs[idx_1].kp[consideringMatches[i].trainIdx].pt);
         }
 
-        cv::Mat F = findFundamentalMat(leftPts, rightPts, CV_FM_RANSAC,
+        cv::Mat F = cv::findFundamentalMat(leftPts, rightPts, CV_FM_RANSAC,
                                        reprojectingThreshold, 0.99);
         cv::Mat_<double> E = buidingCamera.t() * F * buidingCamera;
 
@@ -280,7 +283,7 @@ void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatc
     std::cout << "Number of good matches: " << max_NoGoodPoints << ". Best loop: " << bestLoop << std::endl;
 }
 
-void jointClouds(std::vector<std::vector<PointInCL> > mtpclouds, std::vector<PointInCL>& glbCloud) {
+void jointClouds(std::vector<std::vector<PointInCL>> mtpclouds, std::vector<PointInCL>& glbCloud) {
     glbCloud = mtpclouds[0];
     for (unsigned int loop = 1; loop < mtpclouds.size(); loop++) {
         std::vector<cv::Point3d> pts_0, pts_1;

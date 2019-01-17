@@ -15,7 +15,8 @@ add_executable(structure_from_motion
     src/featuresmatching.cpp
     src/geometry.cpp
     src/loadimages.cpp
-    src/norm.cpp)
+    src/norm.cpp
+)
 target_link_libraries(structure_from_motion ${OpenCV_LIBS})
 
 add_executable(pose_estimation
@@ -23,11 +24,13 @@ add_executable(pose_estimation
     src/featuresmatching.cpp
     src/geometry.cpp
     src/loadimages.cpp
-    src/norm.cpp)
+    src/norm.cpp
+)
 target_link_libraries(pose_estimation ${OpenCV_LIBS})
 
 add_executable(pmvs
     src/pmvs.cpp
     src/geometry.cpp
-    src/norm.cpp)
+    src/norm.cpp
+)
 target_link_libraries(pmvs ${OpenCV_LIBS})

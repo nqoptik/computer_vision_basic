@@ -6,7 +6,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/nonfree/nonfree.hpp>
+#include <opencv2/xfeatures2d.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
 #include "3d_reconstruction/norm.h"
@@ -165,10 +165,10 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
             break;
 
         double t1 = clock();
-        cv::SIFT sift(2500);
+        cv::Ptr<cv::Feature2D> f2d = cv::xfeatures2d::SIFT::create(2500);
         std::vector<cv::KeyPoint> kpFrame;
         cv::Mat desFrame;
-        sift(newFrame, cv::Mat(), kpFrame, desFrame);
+        f2d->detectAndCompute(newFrame, cv::Mat(), kpFrame, desFrame);
         double t2 = clock();
 
         std::vector<std::vector<cv::DMatch> > matches;

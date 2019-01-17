@@ -9,7 +9,7 @@ void BFMatchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv
     }
 
     sortedRatios = ratios;
-    sort(sortedRatios.begin(), sortedRatios.end());
+    std::sort(sortedRatios.begin(), sortedRatios.end());
 }
 
 void FLANNMatchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv::DMatch>>& matches, std::vector<float>& ratios, std::vector<float>& sortedRatios) {
@@ -21,7 +21,7 @@ void FLANNMatchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector
     }
 
     sortedRatios = ratios;
-    sort(sortedRatios.begin(), sortedRatios.end());
+    std::sort(sortedRatios.begin(), sortedRatios.end());
 }
 
 void chooseMatches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, std::vector<float> sortedRatios, unsigned int noMatches, std::vector<cv::DMatch>& acceptedMatches) {
