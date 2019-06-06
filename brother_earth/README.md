@@ -19,7 +19,7 @@ make
 ## Run project
 Copy test data to build folder:
 ```
-cp -r ../../../computer_vision_anlab_data/brother_earth/build/* .
+cp -r ../../../computer_vision_basics_data/brother_earth/build/* .
 ```
 
 Run cross light detection:

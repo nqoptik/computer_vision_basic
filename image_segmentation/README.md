@@ -13,7 +13,7 @@ make
 ## Run project
 Copy test data to build folder:
 ```
-cp -r ../../../computer_vision_anlab_data/image_segmentation/build/* .
+cp -r ../../../computer_vision_basics_data/image_segmentation/build/* .
 ```
 
 Run grabcut segmentation:

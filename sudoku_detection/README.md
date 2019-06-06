@@ -11,7 +11,7 @@ make
 ## Run project
 Copy test data to build folder:
 ```
-cp -r ../../../computer_vision_anlab_data/sudoku_detection/build/* .
+cp -r ../../../computer_vision_basics_data/sudoku_detection/build/* .
 ```
 
 Run sudoku detection:

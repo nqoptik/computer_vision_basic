@@ -13,7 +13,7 @@ make
 ## Run project
 Copy test data to build folder:
 ```
-cp -r ../../../computer_vision_anlab_data/electricity_bill/build/* .
+cp -r ../../../computer_vision_basics_data/electricity_bill/build/* .
 ```
 
 Create output folders:
