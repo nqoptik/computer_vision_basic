@@ -1,122 +1,75 @@
+/**
+ * @file hough_line.cpp
+ * @author Nguyen Quang <nguyenquang.emailbox@gmail.com>
+ * @brief The Hough line transform for line detection.
+ * @since 0.0.1
+ * 
+ * @copyright Copyright (c) 2015, Nguyen Quang, all rights reserved.
+ * 
+ */
+
 #include <iostream>
 #include <cmath>
+#include <string>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <vector>
 
-using namespace cv;
-using namespace std;
+class HoughLine {
+   private:
+    int no_angle;
+    int p_max;
+    int hough;
+    float step_angle;
+    cv::Mat all_lines;
 
-int const noAngle = 100;
-int const pMax = 414;
-int const Hough = 60;
-float const PI = 3.14159265f;
-float const stepAngle = PI / noAngle;
-int allLines[noAngle][pMax];
-vector<int> pGood;
-vector<float> angleGood;
-vector<int> start;
-vector<int> destination;
+   public:
+    HoughLine();
+    ~HoughLine();
+    void detect(cv::Mat img);
+};
 
-void drawLine(Mat orgImg, Mat aftImg, int p, float angle, int color);
-void threshold(Mat inImg, Mat outImg, int thresh);
-void findAllLines(Mat image);
-void findGoodLines();
-void drawGoodLines(Mat orgImg, Mat aftImg);
-int main() {
-    Mat orgImg = imread("Hough.png", 0);
-    threshold(orgImg, orgImg, 200);
-    findAllLines(orgImg);
-    Mat aftImg = Mat::zeros(orgImg.rows, orgImg.cols, CV_8UC1);
-    //  aftImg = orgImg.clone();
-    findGoodLines();
-    drawGoodLines(orgImg, aftImg);
-    imshow("Original Image", orgImg);
-    imshow("After Image", aftImg);
-    waitKey(0);
-    return 1;
+HoughLine::HoughLine() {
+    no_angle = 360;
+    p_max = 414;
+    step_angle = M_PI / no_angle;
+    all_lines = cv::Mat::zeros(cv::Size(p_max, no_angle), CV_8UC1);
 }
 
-void threshold(Mat inImg, Mat outImg, int thresh) {
-    for (int i = 0; i < inImg.rows; i++) {
-        for (int j = 0; j < inImg.cols; j++) {
-            if (inImg.at<uchar>(i, j) < thresh) {
-                outImg.at<uchar>(i, j) = 0;
-            } else {
-                outImg.at<uchar>(i, j) = 255;
-            }
-        }
-    }
+HoughLine::~HoughLine() {
 }
 
-void findAllLines(Mat image) {
-    for (int i = 0; i < image.rows; i++) {
-        for (int j = 0; j < image.cols; j++) {
-            if (image.at<uchar>(i, j) == 0) {
-                for (int iAngle = 0; iAngle < noAngle; iAngle++) {
-                    float angle = iAngle * stepAngle;
-                    int p = (int)floor((i * cos(angle) + j * sin(angle)));
-                    if (p >= 0) {
-                        allLines[iAngle][p]++;
+void HoughLine::detect(cv::Mat img) {
+    cv::threshold(img, img, 200, 255, CV_THRESH_BINARY);
+    for (int r = 0; r < img.rows; r++) {
+        for (int c = 0; c < img.cols; c++) {
+            if (img.data[r * img.cols + c] == 255) {
+                for (int i = 0; i < no_angle; i++) {
+                    float angle = i * step_angle;
+                    int p = std::floor(r * cos(angle) + c * sin(angle));
+                    if (p > 0) {
+                        all_lines.data[i * all_lines.cols + p]++;
                     }
                 }
             }
         }
     }
+    cv::imshow("threshold", all_lines);
+    cv::imshow("img", img);
+    cv::waitKey();
 }
 
-void drawLine(Mat orgImg, Mat aftImg, int p, float angle, int color) {
-    if (angle > PI / 4 && angle < 3 * PI / 4) {
-        for (int i = 1; i < aftImg.rows - 1; i++) {
-            int j = (int)((p - i * cos(angle)) / sin(angle));
-            if (j >= 0 && j < aftImg.cols - 2) {
-                int countN = 0;
-                for (int iDelta = -1; iDelta < 2; iDelta++) {
-                    for (int jDelta = 0; jDelta < 3; jDelta++) {
-                        if (orgImg.at<uchar>(i + iDelta, j + jDelta) == 0) {
-                            countN++;
-                        }
-                    }
-                }
-
-                if (countN > 1)
-                    aftImg.at<uchar>(i, j) = color;
-            }
-        }
-    } else {
-        for (int j = 0; j < aftImg.cols - 2; j++) {
-            int i = (int)((p - j * sin(angle)) / cos(angle));
-            if (i > 0 && i < aftImg.rows - 1) {
-                int countN = 0;
-                for (int iDelta = -1; iDelta < 2; iDelta++) {
-                    for (int jDelta = 0; jDelta < 3; jDelta++) {
-                        if (orgImg.at<uchar>(i + iDelta, j + jDelta) == 0) {
-                            countN++;
-                        }
-                    }
-                }
-
-                if (countN > 1)
-                    aftImg.at<uchar>(i, j) = color;
-            }
-        }
-    }
-}
-
-void findGoodLines() {
-    for (int iAngle = 0; iAngle < noAngle; iAngle++) {
-        for (int p = 0; p < pMax; p++) {
-            if (allLines[iAngle][p] > Hough) {
-                pGood.push_back(p);
-                angleGood.push_back(iAngle * stepAngle);
-            }
-        }
-    }
-}
-
-void drawGoodLines(Mat orgImg, Mat aftImg) {
-    for (unsigned int i = 0; i < pGood.size(); i++) {
-        drawLine(orgImg, aftImg, pGood[i], angleGood[i], 255);
-    }
+/**
+ * @brief The main function.
+ * 
+ * @param[in] argc The argument count.
+ * @param[in] argv The argument vector.
+ * @return The status value.
+ * @since 0.0.1
+ */
+int main(int argc, char** argv) {
+    cv::Mat img = cv::imread(argv[1], 0);
+    HoughLine hough_line;
+    hough_line.detect(img);
+    return 0;
 }
