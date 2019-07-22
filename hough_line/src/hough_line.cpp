@@ -8,46 +8,55 @@
  * 
  */
 
-#include <iostream>
 #include <cmath>
-#include <string>
+#include <iostream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <string>
 
-class HoughLine {
-   private:
+class HoughLine
+{
+private:
     int no_angle;
     int p_max;
     int hough;
     float step_angle;
     cv::Mat all_lines;
 
-   public:
+public:
     HoughLine();
     ~HoughLine();
     void detect(cv::Mat img);
 };
 
-HoughLine::HoughLine() {
+HoughLine::HoughLine()
+{
     no_angle = 360;
     p_max = 414;
     step_angle = M_PI / no_angle;
     all_lines = cv::Mat::zeros(cv::Size(p_max, no_angle), CV_8UC1);
 }
 
-HoughLine::~HoughLine() {
+HoughLine::~HoughLine()
+{
 }
 
-void HoughLine::detect(cv::Mat img) {
+void HoughLine::detect(cv::Mat img)
+{
     cv::threshold(img, img, 200, 255, CV_THRESH_BINARY);
-    for (int r = 0; r < img.rows; r++) {
-        for (int c = 0; c < img.cols; c++) {
-            if (img.data[r * img.cols + c] == 255) {
-                for (int i = 0; i < no_angle; i++) {
+    for (int r = 0; r < img.rows; r++)
+    {
+        for (int c = 0; c < img.cols; c++)
+        {
+            if (img.data[r * img.cols + c] == 255)
+            {
+                for (int i = 0; i < no_angle; i++)
+                {
                     float angle = i * step_angle;
                     int p = std::floor(r * cos(angle) + c * sin(angle));
-                    if (p > 0) {
+                    if (p > 0)
+                    {
                         all_lines.data[i * all_lines.cols + p]++;
                     }
                 }
@@ -67,7 +76,8 @@ void HoughLine::detect(cv::Mat img) {
  * @return The status value.
  * @since 0.0.1
  */
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     cv::Mat img = cv::imread(argv[1], 0);
     HoughLine hough_line;
     hough_line.detect(img);

@@ -18,5 +18,5 @@ cp -r ../../../computer_vision_basics_data/hough_line/build/* .
 
 Run electricity bill warper:
 ```
-./electricity_bill
+./electricity_bill <image_file>
 ```
