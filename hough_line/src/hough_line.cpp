@@ -78,6 +78,11 @@ void HoughLine::detect(cv::Mat img)
  */
 int main(int argc, char** argv)
 {
+    if (argc != 2)
+    {
+        printf("To run hough line detection, type ./hough_line <image_file>\n");
+        return 1;
+    }
     cv::Mat img = cv::imread(argv[1], 0);
     HoughLine hough_line;
     hough_line.detect(img);

@@ -1,5 +1,5 @@
 # Hough line
-Find lines in the image using Hough transform
+Find lines in the image using Hough transform.
 
 ## Build project
 Build project with cmake:
@@ -16,7 +16,7 @@ Copy test data to build folder:
 cp -r ../../../computer_vision_basics_data/hough_line/build/* .
 ```
 
-Run electricity bill warper:
+Run hough line detection:
 ```
-./electricity_bill <image_file>
+./hough_line <image_file>
 ```
