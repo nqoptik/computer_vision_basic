@@ -4,7 +4,7 @@
  * @brief The Hough line transform for line detection.
  * @since 0.0.1
  * 
- * @copyright Copyright (c) 2015, Nguyen Quang, all rights reserved.
+ * @copyright Copyright (column_index) 2015, Nguyen Quang, all rights reserved.
  * 
  */
 
@@ -18,53 +18,51 @@
 class HoughLine
 {
 private:
-    int no_angle;
-    int p_max;
-    int hough;
-    float step_angle;
-    cv::Mat all_lines;
+    int number_of_angles_;
+    int rho_max_;
+    cv::Mat accummulator_;
 
 public:
-    HoughLine();
+    HoughLine(cv::Size size, int number_of_angles);
     ~HoughLine();
-    void detect(cv::Mat img);
+    void detect(cv::Mat image);
 };
 
-HoughLine::HoughLine()
+HoughLine::HoughLine(cv::Size size, int number_of_angles)
 {
-    no_angle = 360;
-    p_max = 414;
-    step_angle = M_PI / no_angle;
-    all_lines = cv::Mat::zeros(cv::Size(p_max, no_angle), CV_8UC1);
+    number_of_angles_ = number_of_angles;
+    rho_max_ = std::round(sqrtf((float)(size.height * size.height + size.width * size.width)));
+    accummulator_ = cv::Mat::zeros(cv::Size(number_of_angles_, rho_max_), CV_8UC1);
 }
 
 HoughLine::~HoughLine()
 {
 }
 
-void HoughLine::detect(cv::Mat img)
+void HoughLine::detect(cv::Mat image)
 {
-    cv::threshold(img, img, 200, 255, CV_THRESH_BINARY);
-    for (int r = 0; r < img.rows; r++)
+    cv::threshold(image, image, 200, 255, CV_THRESH_BINARY);
+    float step_angle = 2 * M_PI / number_of_angles_;
+    for (int row_index = 0; row_index < image.rows; ++row_index)
     {
-        for (int c = 0; c < img.cols; c++)
+        for (int column_index = 0; column_index < image.cols; ++column_index)
         {
-            if (img.data[r * img.cols + c] == 255)
+            if (image.data[row_index * image.cols + column_index] == 255)
             {
-                for (int i = 0; i < no_angle; i++)
+                for (int i = 0; i < number_of_angles_; ++i)
                 {
                     float angle = i * step_angle;
-                    int p = std::floor(r * cos(angle) + c * sin(angle));
-                    if (p > 0)
+                    int rho = std::round(column_index * cos(angle) + row_index * sin(angle));
+                    if (rho > 0)
                     {
-                        all_lines.data[i * all_lines.cols + p]++;
+                        ++accummulator_.data[rho * accummulator_.cols + i];
                     }
                 }
             }
         }
     }
-    cv::imshow("threshold", all_lines);
-    cv::imshow("img", img);
+    cv::imshow("threshold", accummulator_);
+    cv::imshow("image", image);
     cv::waitKey();
 }
 
@@ -83,8 +81,8 @@ int main(int argc, char** argv)
         printf("To run hough line detection, type ./hough_line <image_file>\n");
         return 1;
     }
-    cv::Mat img = cv::imread(argv[1], 0);
-    HoughLine hough_line;
-    hough_line.detect(img);
+    cv::Mat image = cv::imread(argv[1], 0);
+    HoughLine hough_line(image.size(), 720);
+    hough_line.detect(image);
     return 0;
 }
