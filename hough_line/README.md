@@ -1,5 +1,5 @@
 # Hough line
-Find lines in the image using Hough transform.
+Detect lines in the image using the Hough transform.
 
 ## Build project
 Build project with cmake:
