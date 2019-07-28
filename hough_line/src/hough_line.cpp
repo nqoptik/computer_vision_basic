@@ -47,7 +47,7 @@ public:
      * @param[in] accumulator_threshold The accumulator threshold parameter, only those lines get enough votes will be returned.
      * @since 0.0.1
      */
-    HoughLine(float delta_theta, int accumulator_threshold);
+    HoughLine(const float& delta_theta, const int& accumulator_threshold);
 
     /**
      * @brief Destroy the HoughLine object.
@@ -64,10 +64,10 @@ public:
      * @return The vector of lines detected.
      * @since 0.0.1
      */
-    std::vector<Line> detect_lines(cv::Mat image);
+    std::vector<Line> detect_lines(const cv::Mat& image);
 };
 
-HoughLine::HoughLine(float delta_theta, int accumulator_threshold)
+HoughLine::HoughLine(const float& delta_theta, const int& accumulator_threshold)
     : delta_theta_(delta_theta),
       accumulator_threshold_(accumulator_threshold)
 {
@@ -77,7 +77,7 @@ HoughLine::~HoughLine()
 {
 }
 
-std::vector<Line> HoughLine::detect_lines(cv::Mat image)
+std::vector<Line> HoughLine::detect_lines(const cv::Mat& image)
 {
     int theta_index_max = std::round(2 * M_PI / delta_theta_);
     int rho_index_max = std::round(sqrtf((float)(image.rows * image.rows + image.cols * image.cols)));
