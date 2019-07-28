@@ -148,6 +148,11 @@ int main(int argc, char** argv)
         return 1;
     }
     cv::Mat image = cv::imread(argv[1], 0);
+    if (image.empty())
+    {
+        printf("The input image is empty.\n");
+        return 1;
+    }
     cv::threshold(image, image, 200, 255, CV_THRESH_BINARY);
 
     // Apply the Hough line detection
