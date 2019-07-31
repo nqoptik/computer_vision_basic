@@ -1,4 +1,5 @@
 # Image interpolation
+Image interpolation algorithms for image resizing and rotating.
 
 ## Build project
 Build project with cmake:
@@ -15,7 +16,7 @@ Copy test data to build folder:
 cp -r ../../../computer_vision_basics_data/image_interpolation/build/* .
 ```
 
-Run hough line detection:
+Run the image interpolation:
 ```
 ./image_interpolation <image_file>
 ```
