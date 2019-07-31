@@ -36,8 +36,10 @@ struct Line
 class HoughLine
 {
 private:
-    float delta_theta_;
-    int accumulator_threshold_;
+    float delta_theta_;         //!< The angle resolution of the accumulator in radians.
+    int accumulator_threshold_; //!< The accumulator threshold parameter, only those lines get enough votes will be returned.
+    int rho_range_;             //!< The rho range around the maximum cell that belongs to the same line.
+    float theta_range_;         //!< The theta range around the maximum cell that belongs to the same line.
 
 public:
     /**
@@ -45,9 +47,14 @@ public:
      * 
      * @param[in] delta_theta The angle resolution of the accumulator in radians.
      * @param[in] accumulator_threshold The accumulator threshold parameter, only those lines get enough votes will be returned.
+     * @param[in] rho_range The rho range around the maximum cell that belongs to the same line.
+     * @param[in] theta_range The theta range around the maximum cell that belongs to the same line.
      * @since 0.0.1
      */
-    HoughLine(const float& delta_theta, const int& accumulator_threshold);
+    HoughLine(const float& delta_theta = M_PI / 180,
+              const int& accumulator_threshold = 100,
+              const int& rho_range = 10,
+              const float& theta_range = M_PI / 18);
 
     /**
      * @brief Destroy the HoughLine object.
@@ -67,9 +74,14 @@ public:
     std::vector<Line> detect_lines(const cv::Mat& image) const;
 };
 
-HoughLine::HoughLine(const float& delta_theta, const int& accumulator_threshold)
+HoughLine::HoughLine(const float& delta_theta,
+                     const int& accumulator_threshold,
+                     const int& rho_range,
+                     const float& theta_range)
     : delta_theta_(delta_theta),
-      accumulator_threshold_(accumulator_threshold)
+      accumulator_threshold_(accumulator_threshold),
+      rho_range_(rho_range),
+      theta_range_(theta_range)
 {
 }
 
@@ -79,8 +91,8 @@ HoughLine::~HoughLine()
 
 std::vector<Line> HoughLine::detect_lines(const cv::Mat& image) const
 {
-    int theta_index_max = std::round(2 * M_PI / delta_theta_);
     int rho_index_max = std::round(sqrtf((float)(image.rows * image.rows + image.cols * image.cols)));
+    int theta_index_max = std::round(2 * M_PI / delta_theta_);
     cv::Mat accumulator = cv::Mat::zeros(cv::Size(theta_index_max, rho_index_max), CV_16UC1);
     ushort* accumulator_data = (ushort*)accumulator.data;
 
@@ -106,6 +118,8 @@ std::vector<Line> HoughLine::detect_lines(const cv::Mat& image) const
     }
 
     // Run the peak selection algorithm
+    int row_range = rho_range_;
+    int column_range = std::round(theta_range_ / delta_theta_);
     std::vector<Line> lines;
     while (true)
     {
@@ -119,9 +133,9 @@ std::vector<Line> HoughLine::detect_lines(const cv::Mat& image) const
         }
 
         // Zero out the area around the maximum cell that belongs to the same line
-        for (int row_index = std::max(max_cell_location.y - 10, 0); row_index < std::min(max_cell_location.y + 10, accumulator.rows); ++row_index)
+        for (int row_index = std::max(max_cell_location.y - row_range, 0); row_index < std::min(max_cell_location.y + row_range, accumulator.rows); ++row_index)
         {
-            for (int column_index = std::max(max_cell_location.x - 10, 0); column_index < std::min(max_cell_location.x + 10, accumulator.cols); ++column_index)
+            for (int column_index = std::max(max_cell_location.x - column_range, 0); column_index < std::min(max_cell_location.x + column_range, accumulator.cols); ++column_index)
             {
                 accumulator_data[row_index * accumulator.cols + column_index] = 0;
             }
@@ -157,7 +171,7 @@ int main(int argc, char** argv)
     cv::threshold(image, image, 200, 255, CV_THRESH_BINARY);
 
     // Apply the Hough line detection
-    HoughLine hough_line(M_PI / 180, 100);
+    HoughLine hough_line(M_PI / 180, 100, 10, M_PI / 18);
     std::vector<Line> lines = hough_line.detect_lines(image);
     for (size_t i = 0; i < lines.size(); ++i)
     {
