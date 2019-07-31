@@ -64,7 +64,7 @@ public:
      * @return The vector of lines detected.
      * @since 0.0.1
      */
-    std::vector<Line> detect_lines(const cv::Mat& image);
+    std::vector<Line> detect_lines(const cv::Mat& image) const;
 };
 
 HoughLine::HoughLine(const float& delta_theta, const int& accumulator_threshold)
@@ -77,11 +77,12 @@ HoughLine::~HoughLine()
 {
 }
 
-std::vector<Line> HoughLine::detect_lines(const cv::Mat& image)
+std::vector<Line> HoughLine::detect_lines(const cv::Mat& image) const
 {
     int theta_index_max = std::round(2 * M_PI / delta_theta_);
     int rho_index_max = std::round(sqrtf((float)(image.rows * image.rows + image.cols * image.cols)));
-    cv::Mat accumulator = cv::Mat::zeros(cv::Size(theta_index_max, rho_index_max), CV_8UC1);
+    cv::Mat accumulator = cv::Mat::zeros(cv::Size(theta_index_max, rho_index_max), CV_16UC1);
+    ushort* accumulator_data = (ushort*)accumulator.data;
 
     // Run the accumulator
     for (int row_index = 0; row_index < image.rows; ++row_index)
@@ -97,7 +98,7 @@ std::vector<Line> HoughLine::detect_lines(const cv::Mat& image)
                     if (rho >= 0)
                     {
                         int theta_index = std::round(theta / delta_theta_);
-                        ++accumulator.data[rho * accumulator.cols + theta_index];
+                        ++accumulator_data[rho * accumulator.cols + theta_index];
                     }
                 }
             }
@@ -122,7 +123,7 @@ std::vector<Line> HoughLine::detect_lines(const cv::Mat& image)
         {
             for (int column_index = std::max(max_cell_location.x - 10, 0); column_index < std::min(max_cell_location.x + 10, accumulator.cols); ++column_index)
             {
-                accumulator.data[row_index * accumulator.cols + column_index] = 0;
+                accumulator_data[row_index * accumulator.cols + column_index] = 0;
             }
         }
         float rho = max_cell_location.y;
