@@ -13,6 +13,13 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+enum Method : uchar
+{
+    NEAREST = 0,
+    BILINEAR = 1,
+    BICUBIC = 2
+};
+
 struct Pixel
 {
     float column;
@@ -25,7 +32,7 @@ struct Pixel
 
 void resize_image(const cv::Mat& source,
                   cv::Mat& destination,
-                  const cv::Size& size)
+                  const cv::Size& size, Method method = BILINEAR)
 {
     std::vector<Pixel> pixel_map;
     size_t map_size = size.width * size.height;
@@ -40,16 +47,49 @@ void resize_image(const cv::Mat& source,
     }
 
     destination.create(size, CV_8UC1);
-    for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
+    if (method == NEAREST)
     {
-        for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
+        for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
         {
-            int destination_index = destination_row * destination.cols + destination_column;
-            int source_column = std::round(pixel_map[destination_index].column);
-            int source_row = std::round(pixel_map[destination_index].row);
-            int source_index = source_row * source.cols + source_column;
-            destination.data[destination_index] = source.data[source_index];
+            for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
+            {
+                int destination_index = destination_row * destination.cols + destination_column;
+                int source_column = std::round(pixel_map[destination_index].column);
+                int source_row = std::round(pixel_map[destination_index].row);
+                int source_index = source_row * source.cols + source_column;
+                destination.data[destination_index] = source.data[source_index];
+            }
         }
+    }
+    else if (method == BILINEAR)
+    {
+        for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
+        {
+            for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
+            {
+                int destination_index = destination_row * destination.cols + destination_column;
+                float source_column = pixel_map[destination_index].column;
+                float source_row = pixel_map[destination_index].row;
+                int source_left = std::floor(source_column);
+                int source_right = std::ceil(source_column);
+                int source_top = std::floor(source_row);
+                int source_bottom = std::ceil(source_row);
+                int source_top_left_index = source_top * source.cols + source_left;
+                int source_top_right_index = source_top * source.cols + source_right;
+                int source_bottom_left_index = source_bottom * source.cols + source_left;
+                int source_bottom_right_index = source_bottom * source.cols + source_right;
+                uchar value = ((source_column - source_left) * source.data[source_top_right_index] + (source_right - source_column) * source.data[source_top_left_index]) * (source_bottom - source_row) +
+                              ((source_column - source_left) * source.data[source_bottom_right_index] + (source_right - source_column) * source.data[source_bottom_left_index]) * (source_row - source_top);
+                destination.data[destination_index] = value;
+            }
+        }
+    }
+    else if (method == BICUBIC)
+    {
+    }
+    else
+    {
+        printf("Invalid method!\n");
     }
 }
 
@@ -67,11 +107,16 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    cv::Mat resized_image;
-    resize_image(image, resized_image, cv::Size(image.cols * 1.7, image.rows * 1.7));
+    float ratio = 2.3;
+    cv::Mat resized_image_nearest;
+    resize_image(image, resized_image_nearest, cv::Size(image.cols * ratio, image.rows * ratio), NEAREST);
+
+    cv::Mat resized_image_bilinear;
+    resize_image(image, resized_image_bilinear, cv::Size(image.cols * ratio, image.rows * ratio), BILINEAR);
 
     cv::imshow("image", image);
-    cv::imshow("resized_image", resized_image);
+    cv::imshow("resized_image_nearest", resized_image_nearest);
+    cv::imshow("resized_image_bilinear", resized_image_bilinear);
     cv::waitKey(0);
     return 0;
 }
