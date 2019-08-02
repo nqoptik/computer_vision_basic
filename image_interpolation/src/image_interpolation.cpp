@@ -49,13 +49,13 @@ void resize_image(const cv::Mat& source,
     destination.create(size, CV_8UC1);
     if (method == NEAREST)
     {
-        for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
+        for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
         {
-            for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
+            for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
             {
                 int destination_index = destination_row * destination.cols + destination_column;
-                int source_column = std::round(pixel_map[destination_index].column);
                 int source_row = std::round(pixel_map[destination_index].row);
+                int source_column = std::round(pixel_map[destination_index].column);
                 int source_index = source_row * source.cols + source_column;
                 destination.data[destination_index] = source.data[source_index];
             }
@@ -63,24 +63,46 @@ void resize_image(const cv::Mat& source,
     }
     else if (method == BILINEAR)
     {
-        for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
+        for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
         {
-            for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
+            for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
             {
                 int destination_index = destination_row * destination.cols + destination_column;
-                float source_column = pixel_map[destination_index].column;
                 float source_row = pixel_map[destination_index].row;
-                int source_left = std::floor(source_column);
-                int source_right = std::ceil(source_column);
+                float source_column = pixel_map[destination_index].column;
                 int source_top = std::floor(source_row);
                 int source_bottom = std::ceil(source_row);
+                int source_left = std::floor(source_column);
+                int source_right = std::ceil(source_column);
                 int source_top_left_index = source_top * source.cols + source_left;
                 int source_top_right_index = source_top * source.cols + source_right;
                 int source_bottom_left_index = source_bottom * source.cols + source_left;
                 int source_bottom_right_index = source_bottom * source.cols + source_right;
-                uchar value = ((source_column - source_left) * source.data[source_top_right_index] + (source_right - source_column) * source.data[source_top_left_index]) * (source_bottom - source_row) +
-                              ((source_column - source_left) * source.data[source_bottom_right_index] + (source_right - source_column) * source.data[source_bottom_left_index]) * (source_row - source_top);
-                destination.data[destination_index] = value;
+                if (source_top == source_bottom)
+                {
+                    if (source_bottom < destination.rows - 1)
+                    {
+                        ++source_bottom;
+                    }
+                    else
+                    {
+                        --source_top;
+                    }
+                }
+                if (source_left == source_right)
+                {
+                    if (source_right < destination.cols - 1)
+                    {
+                        ++source_right;
+                    }
+                    else
+                    {
+                        --source_left;
+                    }
+                }
+
+                destination.data[destination_index] = (source_bottom - source_row) * ((source_column - source_left) * source.data[source_top_right_index] + (source_right - source_column) * source.data[source_top_left_index]) +
+                                                      (source_row - source_top) * ((source_column - source_left) * source.data[source_bottom_right_index] + (source_right - source_column) * source.data[source_bottom_left_index]);
             }
         }
     }
