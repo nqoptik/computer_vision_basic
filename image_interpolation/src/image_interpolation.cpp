@@ -30,6 +30,24 @@ struct Pixel
     }
 };
 
+int get_cubic(int point_0, int point_1, int point_2, int point_3, float x)
+{
+    float a = -0.5 * point_0 + 1.5 * point_1 - 1.5 * point_2 + 0.5 * point_3;
+    float b = point_0 - 2.5 * point_1 + 2 * point_2 - 0.5 * point_3;
+    float c = -0.5 * point_0 + 0.5 * point_2;
+    float d = point_1;
+    int value = d + x * (c + x * (b + x * a));
+    if (value < 0)
+    {
+        value = 0;
+    }
+    if (value > 255)
+    {
+        value = 255;
+    }
+    return value;
+}
+
 void resize_image(const cv::Mat& source,
                   cv::Mat& destination,
                   const cv::Size& size, Method method = BILINEAR)
@@ -71,47 +89,68 @@ void resize_image(const cv::Mat& source,
                 float source_row = pixel_map[destination_index].row;
                 float source_column = pixel_map[destination_index].column;
                 int source_top = std::floor(source_row);
-                int source_bottom = std::ceil(source_row);
+                if (source_top > source.cols - 2)
+                {
+                    source_top = source.cols - 2;
+                }
+                int source_bottom = source_top + 1;
                 int source_left = std::floor(source_column);
-                int source_right = std::ceil(source_column);
+                if (source_left > source.cols - 2)
+                {
+                    source_left = source.cols - 2;
+                }
+                int source_right = source_left + 1;
                 int source_top_left_index = source_top * source.cols + source_left;
                 int source_top_right_index = source_top * source.cols + source_right;
                 int source_bottom_left_index = source_bottom * source.cols + source_left;
                 int source_bottom_right_index = source_bottom * source.cols + source_right;
-                if (source_top == source_bottom)
-                {
-                    if (source_bottom < destination.rows - 1)
-                    {
-                        ++source_bottom;
-                    }
-                    else
-                    {
-                        --source_top;
-                    }
-                }
-                if (source_left == source_right)
-                {
-                    if (source_right < destination.cols - 1)
-                    {
-                        ++source_right;
-                    }
-                    else
-                    {
-                        --source_left;
-                    }
-                }
 
                 destination.data[destination_index] = (source_bottom - source_row) * ((source_column - source_left) * source.data[source_top_right_index] + (source_right - source_column) * source.data[source_top_left_index]) +
                                                       (source_row - source_top) * ((source_column - source_left) * source.data[source_bottom_right_index] + (source_right - source_column) * source.data[source_bottom_left_index]);
             }
         }
     }
-    else if (method == BICUBIC)
-    {
-    }
     else
     {
-        printf("Invalid method!\n");
+        for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
+        {
+            for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
+            {
+                int destination_index = destination_row * destination.cols + destination_column;
+                float source_row = pixel_map[destination_index].row;
+                float source_column = pixel_map[destination_index].column;
+                int source_x_0 = std::floor(source_column) - 1;
+                if (source_x_0 < 0)
+                {
+                    source_x_0 = 0;
+                }
+                if (source_x_0 > source.cols - 4)
+                {
+                    source_x_0 = source.cols - 4;
+                }
+                int source_x_1 = source_x_0 + 1;
+                int source_x_2 = source_x_0 + 2;
+                int source_x_3 = source_x_0 + 3;
+                int source_y_0 = std::floor(source_row) - 1;
+                if (source_y_0 < 0)
+                {
+                    source_y_0 = 0;
+                }
+                if (source_y_0 > source.rows - 4)
+                {
+                    source_y_0 = source.rows - 4;
+                }
+                int source_y_1 = source_y_0 + 1;
+                int source_y_2 = source_y_0 + 2;
+                int source_y_3 = source_y_0 + 3;
+                int source_x_y_0 = get_cubic(source.data[source_y_0 * source.cols + source_x_0], source.data[source_y_0 * source.cols + source_x_1], source.data[source_y_0 * source.cols + source_x_2], source.data[source_y_0 * source.cols + source_x_3], source_column - std::floor(source_column));
+                int source_x_y_1 = get_cubic(source.data[source_y_1 * source.cols + source_x_0], source.data[source_y_1 * source.cols + source_x_1], source.data[source_y_1 * source.cols + source_x_2], source.data[source_y_1 * source.cols + source_x_3], source_column - std::floor(source_column));
+                int source_x_y_2 = get_cubic(source.data[source_y_2 * source.cols + source_x_0], source.data[source_y_2 * source.cols + source_x_1], source.data[source_y_2 * source.cols + source_x_2], source.data[source_y_2 * source.cols + source_x_3], source_column - std::floor(source_column));
+                int source_x_y_3 = get_cubic(source.data[source_y_3 * source.cols + source_x_0], source.data[source_y_3 * source.cols + source_x_1], source.data[source_y_3 * source.cols + source_x_2], source.data[source_y_3 * source.cols + source_x_3], source_column - std::floor(source_column));
+                int source_value = get_cubic(source_x_y_0, source_x_y_1, source_x_y_2, source_x_y_3, source_row - std::floor(source_row));
+                destination.data[destination_index] = (uchar)source_value;
+            }
+        }
     }
 }
 
@@ -136,9 +175,13 @@ int main(int argc, char** argv)
     cv::Mat resized_image_bilinear;
     resize_image(image, resized_image_bilinear, cv::Size(image.cols * ratio, image.rows * ratio), BILINEAR);
 
+    cv::Mat resized_image_bicubic;
+    resize_image(image, resized_image_bicubic, cv::Size(image.cols * ratio, image.rows * ratio), BICUBIC);
+
     cv::imshow("image", image);
     cv::imshow("resized_image_nearest", resized_image_nearest);
     cv::imshow("resized_image_bilinear", resized_image_bilinear);
+    cv::imshow("resized_image_bicubic", resized_image_bicubic);
     cv::waitKey(0);
     return 0;
 }
