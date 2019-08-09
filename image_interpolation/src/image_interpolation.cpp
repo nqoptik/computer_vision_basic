@@ -64,7 +64,9 @@ void resize_image(const cv::Mat& source,
         pixel_map.emplace_back(Pixel(column, row));
     }
 
-    destination.create(size, CV_8UC1);
+    int number_of_channels = source.channels();
+    int image_type = source.type();
+    destination.create(size, image_type);
     if (method == NEAREST)
     {
         for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
@@ -75,7 +77,10 @@ void resize_image(const cv::Mat& source,
                 int source_row = std::round(pixel_map[destination_index].row);
                 int source_column = std::round(pixel_map[destination_index].column);
                 int source_index = source_row * source.cols + source_column;
-                destination.data[destination_index] = source.data[source_index];
+                for (int i = 0; i < number_of_channels; ++i)
+                {
+                    destination.data[destination_index * number_of_channels + i] = source.data[source_index * number_of_channels + i];
+                }
             }
         }
     }
@@ -129,8 +134,11 @@ void resize_image(const cv::Mat& source,
                 int source_bottom_right_index = source_bottom * source.cols + source_right;
                 float d_x = source_column - source_left;
                 float d_y = source_row - source_top;
-                destination.data[destination_index] = (1 - d_y) * ((1 - d_x) * source.data[source_top_left_index] + d_x * source.data[source_top_right_index]) +
-                                                      d_y * ((1 - d_x) * source.data[source_bottom_left_index] + d_x * source.data[source_bottom_right_index]);
+                for (int i = 0; i < number_of_channels; ++i)
+                {
+                    destination.data[destination_index * number_of_channels + i] = (1 - d_y) * ((1 - d_x) * source.data[source_top_left_index * number_of_channels + i] + d_x * source.data[source_top_right_index * number_of_channels + i]) +
+                                                                                   d_y * ((1 - d_x) * source.data[source_bottom_left_index * number_of_channels + i] + d_x * source.data[source_bottom_right_index * number_of_channels + i]);
+                }
             }
         }
     }
@@ -218,13 +226,32 @@ void resize_image(const cv::Mat& source,
                     source_y_3 = source_y_0 + 3;
                 }
                 float d_x = source_column - std::floor(source_column);
-                uchar source_x_y_0 = get_cubic_interpolation(source.data[source_y_0 * source.cols + source_x_0], source.data[source_y_0 * source.cols + source_x_1], source.data[source_y_0 * source.cols + source_x_2], source.data[source_y_0 * source.cols + source_x_3], d_x);
-                uchar source_x_y_1 = get_cubic_interpolation(source.data[source_y_1 * source.cols + source_x_0], source.data[source_y_1 * source.cols + source_x_1], source.data[source_y_1 * source.cols + source_x_2], source.data[source_y_1 * source.cols + source_x_3], d_x);
-                uchar source_x_y_2 = get_cubic_interpolation(source.data[source_y_2 * source.cols + source_x_0], source.data[source_y_2 * source.cols + source_x_1], source.data[source_y_2 * source.cols + source_x_2], source.data[source_y_2 * source.cols + source_x_3], d_x);
-                uchar source_x_y_3 = get_cubic_interpolation(source.data[source_y_3 * source.cols + source_x_0], source.data[source_y_3 * source.cols + source_x_1], source.data[source_y_3 * source.cols + source_x_2], source.data[source_y_3 * source.cols + source_x_3], d_x);
                 float d_y = source_row - std::floor(source_row);
-                uchar source_value = get_cubic_interpolation(source_x_y_0, source_x_y_1, source_x_y_2, source_x_y_3, d_y);
-                destination.data[destination_index] = source_value;
+                for (int i = 0; i < number_of_channels; ++i)
+                {
+                    uchar source_x_y_0 = get_cubic_interpolation(source.data[(source_y_0 * source.cols + source_x_0) * number_of_channels + i],
+                                                                 source.data[(source_y_0 * source.cols + source_x_1) * number_of_channels + i],
+                                                                 source.data[(source_y_0 * source.cols + source_x_2) * number_of_channels + i],
+                                                                 source.data[(source_y_0 * source.cols + source_x_3) * number_of_channels + i],
+                                                                 d_x);
+                    uchar source_x_y_1 = get_cubic_interpolation(source.data[(source_y_1 * source.cols + source_x_0) * number_of_channels + i],
+                                                                 source.data[(source_y_1 * source.cols + source_x_1) * number_of_channels + i],
+                                                                 source.data[(source_y_1 * source.cols + source_x_2) * number_of_channels + i],
+                                                                 source.data[(source_y_1 * source.cols + source_x_3) * number_of_channels + i],
+                                                                 d_x);
+                    uchar source_x_y_2 = get_cubic_interpolation(source.data[(source_y_2 * source.cols + source_x_0) * number_of_channels + i],
+                                                                 source.data[(source_y_2 * source.cols + source_x_1) * number_of_channels + i],
+                                                                 source.data[(source_y_2 * source.cols + source_x_2) * number_of_channels + i],
+                                                                 source.data[(source_y_2 * source.cols + source_x_3) * number_of_channels + i],
+                                                                 d_x);
+                    uchar source_x_y_3 = get_cubic_interpolation(source.data[(source_y_3 * source.cols + source_x_0) * number_of_channels + i],
+                                                                 source.data[(source_y_3 * source.cols + source_x_1) * number_of_channels + i],
+                                                                 source.data[(source_y_3 * source.cols + source_x_2) * number_of_channels + i],
+                                                                 source.data[(source_y_3 * source.cols + source_x_3) * number_of_channels + i],
+                                                                 d_x);
+                    uchar source_value = get_cubic_interpolation(source_x_y_0, source_x_y_1, source_x_y_2, source_x_y_3, d_y);
+                    destination.data[destination_index * number_of_channels + i] = source_value;
+                }
             }
         }
     }
@@ -237,7 +264,7 @@ int main(int argc, char** argv)
         printf("To run the image interpolation, type ./image_interpolation <image_file> <scale>\n");
         return 1;
     }
-    cv::Mat image = cv::imread(argv[1], 0);
+    cv::Mat image = cv::imread(argv[1]);
     if (image.empty())
     {
         printf("The input image is empty.\n");
@@ -248,7 +275,7 @@ int main(int argc, char** argv)
     float ratio = std::stoi(ratio_string);
     if (ratio <= 0)
     {
-        printf"Ratio has to be greater than 0\n");
+        printf("Ratio has to be greater than 0\n");
     }
 
     cv::Mat resized_image_nearest;
