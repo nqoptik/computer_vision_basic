@@ -232,9 +232,9 @@ void resize_image(const cv::Mat& source,
 
 int main(int argc, char** argv)
 {
-    if (argc != 2)
+    if (argc != 3)
     {
-        printf("To run the image interpolation, type ./image_interpolation <image_file>\n");
+        printf("To run the image interpolation, type ./image_interpolation <image_file> <scale>\n");
         return 1;
     }
     cv::Mat image = cv::imread(argv[1], 0);
@@ -244,7 +244,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    float ratio = 42.3;
+    std::string ratio_string = argv[2];
+    float ratio = std::stoi(ratio_string);
+    if (ratio <= 0)
+    {
+        printf"Ratio has to be greater than 0\n");
+    }
+
     cv::Mat resized_image_nearest;
     resize_image(image, resized_image_nearest, cv::Size(image.cols * ratio, image.rows * ratio), NEAREST);
 

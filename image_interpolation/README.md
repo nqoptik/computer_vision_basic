@@ -1,5 +1,5 @@
 # Image interpolation
-Image interpolation algorithms for image resizing and rotating.
+Image interpolation algorithms for resizing images.
 
 ## Build project
 Build project with cmake:
@@ -18,5 +18,10 @@ cp -r ../../../computer_vision_basics_data/image_interpolation/build/* .
 
 Run the image interpolation:
 ```
-./image_interpolation <image_file>
+./image_interpolation <image_file> <scale>
+```
+
+For example:
+```
+./image_interpolation 00.png 50
 ```
