@@ -11,12 +11,27 @@ make
 ```
 
 ## Run project
-Copy test data to build folder:
-```
-cp -r ../../../computer_vision_basics_data/hough_line/build/* .
-```
-
 Run hough line detection:
 ```
 ./hough_line <image_file>
+```
+
+For example:
+```
+./hough_line edges.png
+```
+<p align="center">
+    <img src="build/edges.png" alt="Edges">
+</p>
+
+<p align="center">
+    Edges.
+</p>
+
+The result will be like this:
+```
+(rho, theta) = (121, 0.331613)
+(rho, theta) = (105, 1.98968)
+(rho, theta) = (327, 0.680678)
+(rho, theta) = (145, 5.46288)
 ```
