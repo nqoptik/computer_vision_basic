@@ -13,6 +13,12 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+/**
+ * @brief The interpolation methods.
+ * 
+ * @since 0.0.1
+ * 
+ */
 enum Method : uchar
 {
     NEAREST = 0,
@@ -20,6 +26,12 @@ enum Method : uchar
     BICUBIC = 2
 };
 
+/**
+ * @brief The pixel struct.
+ * 
+ * @since 0.0.1
+ * 
+ */
 struct Pixel
 {
     float column;
@@ -30,6 +42,17 @@ struct Pixel
     }
 };
 
+/**
+ * @brief The interpolation fuction for 1D data.
+ * 
+ * @param[in] point_0 The pixel value of the first point.
+ * @param[in] point_1 The pixel value of the second point.
+ * @param[in] point_2 The pixel value of the third point.
+ * @param[in] point_3 The pixel value of the fourth point.
+ * @param[in] x The position of the interpolation point.
+ * @return The interpolated value.
+ * @since 0.0.1
+ */
 uchar get_cubic_interpolation(uchar point_0, uchar point_1, uchar point_2, uchar point_3, float x)
 {
     float a = -0.5 * point_0 + 1.5 * point_1 - 1.5 * point_2 + 0.5 * point_3;
@@ -48,10 +71,20 @@ uchar get_cubic_interpolation(uchar point_0, uchar point_1, uchar point_2, uchar
     return value;
 }
 
+/**
+ * @brief The resize image function.
+ * 
+ * @param[in] source The input image.
+ * @param[out] destination The resized image.
+ * @param[in] size The desired resolution.
+ * @param[in] method The interpolation method.
+ * @since 0.0.1
+ */
 void resize_image(const cv::Mat& source,
                   cv::Mat& destination,
                   const cv::Size& size, Method method = BILINEAR)
 {
+    // Calculate the map from source image to destination image
     std::vector<Pixel> pixel_map;
     size_t map_size = size.width * size.height;
     pixel_map.reserve(map_size);
@@ -64,11 +97,14 @@ void resize_image(const cv::Mat& source,
         pixel_map.emplace_back(Pixel(column, row));
     }
 
+    // Create storage for the destination image
     int number_of_channels = source.channels();
     int image_type = source.type();
     destination.create(size, image_type);
+
     if (method == NEAREST)
     {
+        // The nearest neighbour interpolation
         for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
         {
             for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
@@ -79,6 +115,7 @@ void resize_image(const cv::Mat& source,
                 int source_index = source_row * source.cols + source_column;
                 for (int i = 0; i < number_of_channels; ++i)
                 {
+                    // Assign to the closest pixel
                     destination.data[destination_index * number_of_channels + i] = source.data[source_index * number_of_channels + i];
                 }
             }
@@ -86,6 +123,7 @@ void resize_image(const cv::Mat& source,
     }
     else if (method == BILINEAR)
     {
+        // The bilinear interpolation
         for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
         {
             for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
@@ -97,11 +135,13 @@ void resize_image(const cv::Mat& source,
                 int source_top, source_bottom;
                 if (std::floor(source_row) == -1)
                 {
+                    // The top margin
                     source_top = 0;
                     source_bottom = 0;
                 }
                 else if (std::floor(source_row) == source.rows - 1)
                 {
+                    // The bottom margin
                     source_top = source.rows - 1;
                     source_bottom = source.rows - 1;
                 }
@@ -114,11 +154,13 @@ void resize_image(const cv::Mat& source,
                 int source_left, source_right;
                 if (std::floor(source_column) == -1)
                 {
+                    // The left margin
                     source_left = 0;
                     source_right = 0;
                 }
                 else if (std::floor(source_column) == source.cols - 1)
                 {
+                    // The right margin
                     source_left = source.cols - 1;
                     source_right = source.cols - 1;
                 }
@@ -136,6 +178,7 @@ void resize_image(const cv::Mat& source,
                 float d_y = source_row - source_top;
                 for (int i = 0; i < number_of_channels; ++i)
                 {
+                    // Assign to the weighted average
                     destination.data[destination_index * number_of_channels + i] = (1 - d_y) * ((1 - d_x) * source.data[source_top_left_index * number_of_channels + i] + d_x * source.data[source_top_right_index * number_of_channels + i]) +
                                                                                    d_y * ((1 - d_x) * source.data[source_bottom_left_index * number_of_channels + i] + d_x * source.data[source_bottom_right_index * number_of_channels + i]);
                 }
@@ -144,6 +187,7 @@ void resize_image(const cv::Mat& source,
     }
     else
     {
+        // The bicubic interpolation
         for (int destination_row = 0; destination_row < destination.rows; ++destination_row)
         {
             for (int destination_column = 0; destination_column < destination.cols; ++destination_column)
@@ -155,6 +199,7 @@ void resize_image(const cv::Mat& source,
                 int source_x_0, source_x_1, source_x_2, source_x_3;
                 if (std::floor(source_column) == -1)
                 {
+                    // The top margin
                     source_x_0 = 0;
                     source_x_1 = 0;
                     source_x_2 = 0;
@@ -162,6 +207,7 @@ void resize_image(const cv::Mat& source,
                 }
                 else if (std::floor(source_column) == 0)
                 {
+                    // The second top margin
                     source_x_0 = 0;
                     source_x_1 = 0;
                     source_x_2 = 1;
@@ -169,6 +215,7 @@ void resize_image(const cv::Mat& source,
                 }
                 else if (std::floor(source_column) == source.cols - 2)
                 {
+                    // The second bottom margin
                     source_x_0 = source.cols - 3;
                     source_x_1 = source.cols - 2;
                     source_x_2 = source.cols - 1;
@@ -176,6 +223,7 @@ void resize_image(const cv::Mat& source,
                 }
                 else if (std::floor(source_column) == source.cols - 1)
                 {
+                    // The bottom margin
                     source_x_0 = source.cols - 2;
                     source_x_1 = source.cols - 1;
                     source_x_2 = source.cols - 1;
@@ -192,6 +240,7 @@ void resize_image(const cv::Mat& source,
                 int source_y_0, source_y_1, source_y_2, source_y_3;
                 if (std::floor(source_row) == -1)
                 {
+                    // The left margin
                     source_y_0 = 0;
                     source_y_1 = 0;
                     source_y_2 = 0;
@@ -199,6 +248,7 @@ void resize_image(const cv::Mat& source,
                 }
                 else if (std::floor(source_row) == 0)
                 {
+                    // The second left margin
                     source_y_0 = 0;
                     source_y_1 = 0;
                     source_y_2 = 1;
@@ -206,6 +256,7 @@ void resize_image(const cv::Mat& source,
                 }
                 else if (std::floor(source_row) == source.rows - 2)
                 {
+                    // The second right margin
                     source_y_0 = source.rows - 3;
                     source_y_1 = source.rows - 2;
                     source_y_2 = source.rows - 1;
@@ -213,6 +264,7 @@ void resize_image(const cv::Mat& source,
                 }
                 else if (std::floor(source_row) == source.rows - 1)
                 {
+                    // The right margin
                     source_y_0 = source.rows - 2;
                     source_y_1 = source.rows - 1;
                     source_y_2 = source.rows - 1;
@@ -229,6 +281,7 @@ void resize_image(const cv::Mat& source,
                 float d_y = source_row - std::floor(source_row);
                 for (int i = 0; i < number_of_channels; ++i)
                 {
+                    // Calculate the cubic interpolation for each row
                     uchar source_x_y_0 = get_cubic_interpolation(source.data[(source_y_0 * source.cols + source_x_0) * number_of_channels + i],
                                                                  source.data[(source_y_0 * source.cols + source_x_1) * number_of_channels + i],
                                                                  source.data[(source_y_0 * source.cols + source_x_2) * number_of_channels + i],
@@ -249,6 +302,7 @@ void resize_image(const cv::Mat& source,
                                                                  source.data[(source_y_3 * source.cols + source_x_2) * number_of_channels + i],
                                                                  source.data[(source_y_3 * source.cols + source_x_3) * number_of_channels + i],
                                                                  d_x);
+                    // Calculate the cubic interpolation for the final column
                     uchar source_value = get_cubic_interpolation(source_x_y_0, source_x_y_1, source_x_y_2, source_x_y_3, d_y);
                     destination.data[destination_index * number_of_channels + i] = source_value;
                 }
@@ -257,6 +311,14 @@ void resize_image(const cv::Mat& source,
     }
 }
 
+/**
+ * @brief The main function.
+ * 
+ * @param[in] argc The argument count.
+ * @param[in] argv The argument vector.
+ * @return The status value.
+ * @since 0.0.1
+ */
 int main(int argc, char** argv)
 {
     if (argc != 3)
@@ -264,6 +326,8 @@ int main(int argc, char** argv)
         printf("To run the image interpolation, type ./image_interpolation <image_file> <scale>\n");
         return 1;
     }
+
+    // Read the image
     cv::Mat image = cv::imread(argv[1]);
     if (image.empty())
     {
@@ -271,22 +335,28 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // Get the destination size
     std::string ratio_string = argv[2];
     float ratio = std::stoi(ratio_string);
     if (ratio <= 0)
     {
         printf("Ratio has to be greater than 0\n");
     }
+    cv::Size destination_size(image.cols * ratio, image.rows * ratio);
 
+    // Nearest neighbour interpolation
     cv::Mat resized_image_nearest;
-    resize_image(image, resized_image_nearest, cv::Size(image.cols * ratio, image.rows * ratio), NEAREST);
+    resize_image(image, resized_image_nearest, destination_size, NEAREST);
 
+    // Bilinear interpolation
     cv::Mat resized_image_bilinear;
-    resize_image(image, resized_image_bilinear, cv::Size(image.cols * ratio, image.rows * ratio), BILINEAR);
+    resize_image(image, resized_image_bilinear, destination_size, BILINEAR);
 
+    // Bicubic interpolation
     cv::Mat resized_image_bicubic;
-    resize_image(image, resized_image_bicubic, cv::Size(image.cols * ratio, image.rows * ratio), BICUBIC);
+    resize_image(image, resized_image_bicubic, destination_size, BICUBIC);
 
+    // Display the images
     cv::imshow("image", image);
     cv::imshow("resized_image_nearest", resized_image_nearest);
     cv::imshow("resized_image_bilinear", resized_image_bilinear);
