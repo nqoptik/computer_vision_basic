@@ -4,7 +4,6 @@ Detect lines in the image using the Hough transform.
 ## Build project
 Build project with cmake:
 ```
-mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make
