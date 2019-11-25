@@ -1,6 +1,6 @@
 /**
  * @file hough_line.cpp
- * @author Nguyen Quang <nguyenquang.emailbox@gmail.com>
+ * @author Nguyen Quang <nqoptik@gmail.com>
  * @brief The Hough line transform for line detection.
  * @since 0.0.1
  * 

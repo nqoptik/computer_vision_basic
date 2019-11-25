@@ -1,6 +1,6 @@
 /**
  * @file sudoku_detection.cpp
- * @author Nguyen Quang <nguyenquang.emailbox@gmail.com>
+ * @author Nguyen Quang <nqoptik@gmail.com>
  * @brief The image interpolation implementation.
  * @since 0.0.1
  * 
