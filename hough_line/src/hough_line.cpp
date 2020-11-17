@@ -168,7 +168,7 @@ int main(int argc, char** argv)
         printf("The input image is empty.\n");
         return 1;
     }
-    cv::threshold(image, image, 200, 255, CV_THRESH_BINARY);
+    cv::threshold(image, image, 200, 255, cv::THRESH_BINARY);
 
     // Apply the Hough line detection
     HoughLine hough_line(M_PI / 180, 100, 10, M_PI / 18);

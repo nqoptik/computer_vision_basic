@@ -81,6 +81,7 @@ int main()
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata)
 {
+    (void)userdata;
     if (event == cv::EVENT_LBUTTONDOWN)
     {
         std::vector<cv::Point> temp;

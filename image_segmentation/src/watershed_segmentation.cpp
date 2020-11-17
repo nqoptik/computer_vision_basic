@@ -69,6 +69,7 @@ int main()
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata)
 {
+    (void)userdata;
     if (event == cv::EVENT_LBUTTONDOWN)
     {
         std::vector<cv::Point> temp;
@@ -99,7 +100,7 @@ void CallBackFunc(int event, int x, int y, int flags, void* userdata)
         std::vector<std::vector<cv::Point>> contours;
         std::vector<cv::Vec4i> hierarchy;
         cv::Mat contoursImg = normImg.clone();
-        cv::findContours(contoursImg, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+        cv::findContours(contoursImg, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
         int noObjects = contours.size();
         cv::Mat markers = cv::Mat::zeros(normImg.size(), CV_32SC1);

@@ -11,6 +11,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 
 ## System dependencies
 find_package(OpenCV REQUIRED)
+if(NOT ${OpenCV_VERSION} STRGREATER "2.4")
+    message(FATAL_ERROR "OpenCV_VERSION has to > 2.4")
+endif()
 
 ## Declare a C++ executable
 add_executable(hough_line src/hough_line.cpp)
